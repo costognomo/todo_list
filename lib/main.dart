@@ -30,28 +30,112 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+// Struttura dati di una task
 class Task {
-  final String titolo;
-  Task(this.titolo);
+  String titolo;
+  String descrizione;
+  Task(this.titolo, this.descrizione);
 }
 
+// Gestione dati + UI
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 10;
   final List<Task> _task = [];
 
+  // apertura e modifica task
+  void _openTaskDetail(int index) {
+    final titoloController = TextEditingController(text: _task[index].titolo);
+    final descrizioneController = TextEditingController(
+      text: _task[index].descrizione,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Dettaglio task'),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.6,
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: titoloController,
+                    decoration: const InputDecoration(labelText: 'Titolo'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descrizioneController,
+                    minLines: 20,
+                    maxLines: 50,
+                    keyboardType: TextInputType.multiline,
+                    decoration: const InputDecoration(
+                      labelText: 'Contenuto',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Chiudi'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _task[index].titolo = titoloController.text;
+                  _task[index].descrizione = descrizioneController.text;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Salva'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // creazione nuove task
   void _creditnumber() {
     setState(() {
       if (_counter >= 1) {
-        final controller = TextEditingController();
+        final titoloController = TextEditingController();
+        final descrizioneController = TextEditingController();
 
         showDialog(
           context: context,
           builder: (context) {
             return AlertDialog(
-              title: const Text('Scegli un titolo per la tua task'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(hintText: 'Inserisci titolo'),
+              title: const Text('Crea una nuova task'),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.6,
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: titoloController,
+                      decoration: const InputDecoration(labelText: 'Titolo'),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: descrizioneController,
+                        keyboardType: TextInputType.multiline,
+                        expands: true,
+                        maxLines: null,
+                        decoration: const InputDecoration(
+                          labelText: 'Corpo del testo',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -60,10 +144,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    if (controller.text.isEmpty) return;
+                    if (titoloController.text.isEmpty) return;
+
                     setState(() {
                       _counter--;
-                      _task.add(Task(controller.text));
+                      _task.add(
+                        Task(titoloController.text, descrizioneController.text),
+                      );
                     });
 
                     Navigator.pop(context);
@@ -75,6 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         );
       } else {
+        //gestione errore in caso di mancanza di crediti
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Non hai più crediti disponibili!'),
@@ -85,6 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  //Gestione scaffold con AppBar + Body (stack)
   @override
   Widget build(BuildContext context) {
     Image.asset(
@@ -108,6 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
+      //sfondo e row con 3 colonne
       body: Stack(
         children: [
           Positioned.fill(
@@ -148,24 +238,32 @@ class _MyHomePageState extends State<MyHomePage> {
                         padding: const EdgeInsets.all(12),
                         itemCount: _task.length,
                         itemBuilder: (context, index) {
-                          return Container(
-                            height: 150,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: const Color.fromARGB(104, 255, 255, 255),
-                              border: Border.all(
-                                color: const Color.fromARGB(55, 255, 255, 255),
-                                width: 2,
+                          return InkWell(
+                            onTap: () => _openTaskDetail(index),
+                            child: Container(
+                              height: 150,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: const Color.fromARGB(230, 255, 255, 255),
+                                border: Border.all(
+                                  color: const Color.fromARGB(
+                                    200,
+                                    255,
+                                    255,
+                                    255,
+                                  ),
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _task[index].titolo.toString(),
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
+                              child: Center(
+                                child: Text(
+                                  _task[index].titolo.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -196,7 +294,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       Container(
                         height: 150,
-                        color: const Color.fromARGB(255, 0, 0, 0),
+                        color: const Color.fromARGB(255, 255, 255, 0),
                       ),
                       Container(
                         height: 150,
