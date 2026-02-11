@@ -86,6 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             TextButton(
               onPressed: () {
+                if (titoloController.text.isEmpty) return;
                 setState(() {
                   _task[index].titolo = titoloController.text;
                   _task[index].descrizione = descrizioneController.text;
@@ -128,6 +129,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         keyboardType: TextInputType.multiline,
                         expands: true,
                         maxLines: null,
+
+                        textAlign: TextAlign.left,
+                        textAlignVertical: TextAlignVertical.top,
+
                         decoration: const InputDecoration(
                           labelText: 'Corpo del testo',
                           border: OutlineInputBorder(),
