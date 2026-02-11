@@ -35,7 +35,10 @@ class MyHomePage extends StatefulWidget {
 class Task {
   String titolo;
   String descrizione;
-  Task(this.titolo, this.descrizione);
+  String avanzamento;
+  String priorita;
+
+  Task(this.titolo, this.descrizione, this.avanzamento, this.priorita);
 }
 
 // Gestione dati + UI
@@ -49,9 +52,13 @@ class _MyHomePageState extends State<MyHomePage> {
     final descrizioneController = TextEditingController(
       text: _task[index].descrizione,
     );
+    String prioritaselezionata = _task[index].priorita;
+    String avanzamentoselezionato = _task[index].avanzamento;
 
     final titoloOriginale = _task[index].titolo;
     final descrizioneOriginale = _task[index].descrizione;
+    final prioritaoriginale = _task[index].priorita;
+    final avanzamentoriginale = _task[index].avanzamento;
 
     showDialog(
       context: context,
@@ -68,6 +75,76 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: prioritaselezionata,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'Bassa',
+                                  child: Text('Bassa'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Media',
+                                  child: Text('Media'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Alta',
+                                  child: Text('Alta'),
+                                ),
+                              ],
+                              onChanged: isEditing
+                                  ? (value) {
+                                      if (value == null) return;
+                                      setDialogState(
+                                        () => prioritaselezionata = value,
+                                      );
+                                    }
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: 'Priorità',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: avanzamentoselezionato,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'Da iniziare',
+                                  child: Text('Da iniziare'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Iniziato',
+                                  child: Text('Iniziato'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Completato',
+                                  child: Text('Completato'),
+                                ),
+                              ],
+                              onChanged: isEditing
+                                  ? (value) {
+                                      if (value == null) return;
+                                      setDialogState(
+                                        () => avanzamentoselezionato = value,
+                                      );
+                                    }
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: 'Avanzamento',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       TextField(
                         controller: titoloController,
                         enabled: isEditing,
@@ -116,6 +193,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           titoloController.text = titoloOriginale;
                           descrizioneController.text = descrizioneOriginale;
                           setDialogState(() => isEditing = false);
+                          prioritaselezionata = prioritaoriginale;
+                          avanzamentoselezionato = avanzamentoriginale;
                         } else {
                           Navigator.pop(context);
                         }
@@ -135,6 +214,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         setState(() {
                           _task[index].titolo = titoloController.text;
                           _task[index].descrizione = descrizioneController.text;
+                          _task[index].priorita = prioritaselezionata;
+                          _task[index].avanzamento = avanzamentoselezionato;
                         });
                         Navigator.pop(context);
                       },
@@ -156,6 +237,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_counter >= 1) {
         final titoloController = TextEditingController();
         final descrizioneController = TextEditingController();
+        String prioritaselezionata = 'Priorità';
+        String avanzamentoselezionato = 'Avanzamento';
 
         showDialog(
           context: context,
@@ -167,6 +250,74 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: MediaQuery.of(context).size.height * 0.6,
                 child: Column(
                   children: [
+                    const SizedBox(height: 12),
+
+                    // creazione dei due menù a tendina per priorità e per avanzamento
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: prioritaselezionata,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Priorità',
+                                child: Text('Priorità'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Bassa',
+                                child: Text('Bassa'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Media',
+                                child: Text('Media'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Alta',
+                                child: Text('Alta'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() => prioritaselezionata = value);
+                            },
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: avanzamentoselezionato,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Avanzamento',
+                                child: Text('Avanzamento'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Da iniziare',
+                                child: Text('Da iniziare'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Iniziato',
+                                child: Text('Iniziato'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Completato',
+                                child: Text('Completato'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() => avanzamentoselezionato = value);
+                            },
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     TextField(
                       controller: titoloController,
                       maxLength: 40,
@@ -200,11 +351,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextButton(
                   onPressed: () {
                     if (titoloController.text.isEmpty) return;
+                    if (prioritaselezionata == 'Priorità' ||
+                        avanzamentoselezionato == 'Avanzamento')
+                      return;
 
                     setState(() {
                       _counter--;
                       _task.add(
-                        Task(titoloController.text, descrizioneController.text),
+                        Task(
+                          titoloController.text,
+                          descrizioneController.text,
+                          avanzamentoselezionato,
+                          prioritaselezionata,
+                        ),
                       );
                     });
 
