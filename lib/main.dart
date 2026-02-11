@@ -10,6 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Applicazione stage g-nous',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -49,53 +50,101 @@ class _MyHomePageState extends State<MyHomePage> {
       text: _task[index].descrizione,
     );
 
+    final titoloOriginale = _task[index].titolo;
+    final descrizioneOriginale = _task[index].descrizione;
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Dettaglio task'),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.6,
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  TextField(
-                    controller: titoloController,
-                    decoration: const InputDecoration(labelText: 'Titolo'),
+        bool isEditing = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Dettaglio task'),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.6,
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: titoloController,
+                        enabled: isEditing,
+                        maxLength: 40,
+                        decoration: const InputDecoration(labelText: 'Titolo'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: descrizioneController,
+                        enabled: isEditing,
+                        minLines: 20,
+                        maxLines: 50,
+                        keyboardType: TextInputType.multiline,
+                        textAlignVertical: TextAlignVertical.top,
+                        decoration: const InputDecoration(
+                          labelText: 'Contenuto',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: descrizioneController,
-                    minLines: 20,
-                    maxLines: 50,
-                    keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(
-                      labelText: 'Contenuto',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Chiudi'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (titoloController.text.isEmpty) return;
-                setState(() {
-                  _task[index].titolo = titoloController.text;
-                  _task[index].descrizione = descrizioneController.text;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Salva'),
-            ),
-          ],
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                // Sinistra: Elimina (sempre visibile)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _task.removeAt(index);
+                      _counter++;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Elimina'),
+                ),
+
+                // Destra: in lettura -> Modifica/Chiudi; in modifica -> Annulla/Salva
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        if (isEditing) {
+                          // annulla modifiche locali e torna in lettura
+                          titoloController.text = titoloOriginale;
+                          descrizioneController.text = descrizioneOriginale;
+                          setDialogState(() => isEditing = false);
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: Text(isEditing ? 'Annulla modifiche' : 'Chiudi'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        if (!isEditing) {
+                          setDialogState(() => isEditing = true);
+                          return;
+                        }
+
+                        if (titoloController.text.isEmpty) return;
+
+                        setState(() {
+                          _task[index].titolo = titoloController.text;
+                          _task[index].descrizione = descrizioneController.text;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Text(isEditing ? 'Salva' : 'Modifica'),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -120,6 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     TextField(
                       controller: titoloController,
+                      maxLength: 40,
                       decoration: const InputDecoration(labelText: 'Titolo'),
                     ),
                     const SizedBox(height: 12),
@@ -246,7 +296,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           return InkWell(
                             onTap: () => _openTaskDetail(index),
                             child: Container(
-                              height: 150,
+                              height: 80,
                               margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
@@ -265,7 +315,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Text(
                                   _task[index].titolo.toString(),
                                   style: const TextStyle(
-                                    fontSize: 22,
+                                    fontSize: 21,
                                     color: Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
