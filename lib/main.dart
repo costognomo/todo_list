@@ -24,7 +24,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
   final String title;
 
   @override
@@ -35,28 +34,50 @@ class MyHomePage extends StatefulWidget {
 class Task {
   String titolo;
   String descrizione;
-  String avanzamento;
-  String priorita;
+  String avanzamento; // "Da iniziare" | "Iniziato" | "Completato"
+  String priorita; // "Bassa" | "Media" | "Alta"
 
   Task(this.titolo, this.descrizione, this.avanzamento, this.priorita);
 }
 
-// Gestione dati + UI
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 10;
   final List<Task> _task = [];
 
+  // ---------------------------------------------------------------------------
+  //  ALERT ERRORE (riutilizzabile)
+  // ---------------------------------------------------------------------------
+  void _schermataerrore(String messaggio) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Errore'),
+        content: Text(messaggio),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), // chiude SOLO l'alert
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  //  FILTRO: ritorna gli indici reali della lista _task per uno stato
+  // ---------------------------------------------------------------------------
   List<int> _filtrostatoavanzamento(String stato) {
-    List<int> result = [];
+    final result = <int>[];
     for (int i = 0; i < _task.length; i++) {
-      if (_task[i].avanzamento == stato) {
-        result.add(i);
-      }
+      if (_task[i].avanzamento == stato) result.add(i);
     }
     return result;
   }
 
-  widget_taskBox(int index) {
+  // ---------------------------------------------------------------------------
+  //  BOX UI riutilizzabile per una task (
+  // ---------------------------------------------------------------------------
+  Widget widget_taskBox(int index) {
     return Container(
       height: 80,
       margin: const EdgeInsets.only(bottom: 12),
@@ -70,7 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       child: Center(
         child: Text(
-          _task[index].titolo.toString(),
+          _task[index].titolo,
           style: const TextStyle(
             fontSize: 21,
             color: Colors.black,
@@ -81,42 +102,55 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  // apertura e modifica task
+  // ---------------------------------------------------------------------------
+  //  DETTAGLIO TASK: lettura -> (se non completata) modifica -> salva
+  //  Regole richieste:
+  //    - se Completato: non modificabile
+  //    - se Completato ed eliminata: NON aumenta i crediti
+  // ---------------------------------------------------------------------------
   void _openTaskDetail(int index) {
+    // Controller testo
     final titoloController = TextEditingController(text: _task[index].titolo);
     final descrizioneController = TextEditingController(
       text: _task[index].descrizione,
     );
+
+    // Dropdown (valori correnti)
     String prioritaselezionata = _task[index].priorita;
     String avanzamentoselezionato = _task[index].avanzamento;
 
+    // Copie originali per "Annulla modifiche"
     final titoloOriginale = _task[index].titolo;
     final descrizioneOriginale = _task[index].descrizione;
-    final prioritaoriginale = _task[index].priorita;
-    final avanzamentoriginale = _task[index].avanzamento;
+    final prioritaOriginale = _task[index].priorita;
+    final avanzamentoOriginale = _task[index].avanzamento;
 
     showDialog(
       context: context,
-      builder: (context) {
-        bool isEditing = false;
+      builder: (dialogContext) {
+        bool isEditing = false; // stato locale: editing on/off
+
+        // Regola: se la task è completata, è "bloccata"
+        final bool isCompletata = (_task[index].avanzamento == 'Completato');
 
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: const Text('Dettaglio task'),
               content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.6,
-                height: MediaQuery.of(context).size.height * 0.6,
+                width: MediaQuery.of(dialogContext).size.width * 0.6,
+                height: MediaQuery.of(dialogContext).size.height * 0.6,
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       const SizedBox(height: 12),
 
+                      // Dropdown priorità + avanzamento
                       Row(
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              initialValue: prioritaselezionata,
+                              value: prioritaselezionata,
                               items: const [
                                 DropdownMenuItem(
                                   value: 'Bassa',
@@ -131,7 +165,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text('Alta'),
                                 ),
                               ],
-                              onChanged: isEditing
+                              // Abilita cambio SOLO se editing e NON completata
+                              onChanged: (isEditing && !isCompletata)
                                   ? (value) {
                                       if (value == null) return;
                                       setDialogState(
@@ -163,7 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text('Completato'),
                                 ),
                               ],
-                              onChanged: isEditing
+                              onChanged: (isEditing && !isCompletata)
                                   ? (value) {
                                       if (value == null) return;
                                       setDialogState(
@@ -180,16 +215,22 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
 
+                      const SizedBox(height: 12),
+
+                      // Titolo (bloccato se completata)
                       TextField(
                         controller: titoloController,
-                        enabled: isEditing,
+                        enabled: isEditing && !isCompletata,
                         maxLength: 40,
                         decoration: const InputDecoration(labelText: 'Titolo'),
                       ),
+
                       const SizedBox(height: 12),
+
+                      // Descrizione (bloccato se completata)
                       TextField(
                         controller: descrizioneController,
-                        enabled: isEditing,
+                        enabled: isEditing && !isCompletata,
                         minLines: 20,
                         maxLines: 50,
                         keyboardType: TextInputType.multiline,
@@ -203,47 +244,72 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
+
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
-                // Sinistra: Elimina (sempre visibile)
+                // ------------------ ELIMINA ------------------
                 TextButton(
                   onPressed: () {
                     setState(() {
+                      // Se era completata -> NON incrementare crediti
+                      final bool eraCompletata =
+                          (_task[index].avanzamento == 'Completato');
+
                       _task.removeAt(index);
-                      _counter++;
+
+                      if (!eraCompletata) {
+                        _counter++; // crediti tornano solo se non completata
+                      }
                     });
-                    Navigator.pop(context);
+
+                    Navigator.pop(dialogContext);
                   },
                   child: const Text('Elimina'),
                 ),
 
-                // Destra: in lettura -> Modifica/Chiudi; in modifica -> Annulla/Salva
+                // ------------------ BOTTONI DESTRA ------------------
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Chiudi oppure annulla modifiche
                     TextButton(
                       onPressed: () {
                         if (isEditing) {
-                          // annulla modifiche locali e torna in lettura
+                          // Ripristina testi e dropdown ai valori originali
                           titoloController.text = titoloOriginale;
                           descrizioneController.text = descrizioneOriginale;
-                          setDialogState(() => isEditing = false);
-                          prioritaselezionata = prioritaoriginale;
-                          avanzamentoselezionato = avanzamentoriginale;
+
+                          setDialogState(() {
+                            prioritaselezionata = prioritaOriginale;
+                            avanzamentoselezionato = avanzamentoOriginale;
+                            isEditing = false;
+                          });
                         } else {
-                          Navigator.pop(context);
+                          Navigator.pop(dialogContext);
                         }
                       },
                       child: Text(isEditing ? 'Annulla modifiche' : 'Chiudi'),
                     ),
                     const SizedBox(width: 8),
+
+                    // Modifica / Salva
                     TextButton(
                       onPressed: () {
+                        // Regola: completata -> non modificabile
+                        if (isCompletata) {
+                          _schermataerrore(
+                            'La task è completata e non può più essere modificata.',
+                          );
+                          return;
+                        }
+
+                        // Se in lettura -> entra in modifica
                         if (!isEditing) {
                           setDialogState(() => isEditing = true);
                           return;
                         }
 
+                        // Se in modifica -> salva
                         if (titoloController.text.isEmpty) return;
 
                         setState(() {
@@ -252,7 +318,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           _task[index].priorita = prioritaselezionata;
                           _task[index].avanzamento = avanzamentoselezionato;
                         });
-                        Navigator.pop(context);
+
+                        Navigator.pop(dialogContext);
                       },
                       child: Text(isEditing ? 'Salva' : 'Modifica'),
                     ),
@@ -266,28 +333,41 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  // creazione nuove task
+  // ---------------------------------------------------------------------------
+  //  CREAZIONE TASK
+  //  - Se non selezioni titolo/priorità/avanzamento -> alert
+  //  Nota: nessun setState esterno al dialog
+  // ---------------------------------------------------------------------------
   void _creditnumber() {
-    setState(() {
-      if (_counter >= 1) {
-        final titoloController = TextEditingController();
-        final descrizioneController = TextEditingController();
+    if (_counter < 1) {
+      _schermataerrore(
+        'i tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
+      );
+      return;
+    }
+
+    final titoloController = TextEditingController();
+    final descrizioneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        // Stato locale del dialog: dropdown
         String prioritaselezionata = 'Priorità';
         String avanzamentoselezionato = 'Avanzamento';
 
-        showDialog(
-          context: context,
-          builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: const Text('Crea una nuova task'),
               content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.6,
-                height: MediaQuery.of(context).size.height * 0.6,
+                width: MediaQuery.of(dialogContext).size.width * 0.6,
+                height: MediaQuery.of(dialogContext).size.height * 0.6,
                 child: Column(
                   children: [
                     const SizedBox(height: 12),
 
-                    // creazione dei due menù a tendina per priorità e per avanzamento
+                    // Dropdown priorità + avanzamento
                     Row(
                       children: [
                         Expanded(
@@ -313,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ],
                             onChanged: (value) {
                               if (value == null) return;
-                              setState(() => prioritaselezionata = value);
+                              setDialogState(() => prioritaselezionata = value);
                             },
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
@@ -344,7 +424,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             ],
                             onChanged: (value) {
                               if (value == null) return;
-                              setState(() => avanzamentoselezionato = value);
+                              setDialogState(
+                                () => avanzamentoselezionato = value,
+                              );
                             },
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
@@ -353,22 +435,24 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ],
                     ),
+
+                    // Titolo
                     TextField(
                       controller: titoloController,
                       maxLength: 40,
                       decoration: const InputDecoration(labelText: 'Titolo'),
                     ),
                     const SizedBox(height: 12),
+
+                    // Corpo testo
                     Expanded(
                       child: TextField(
                         controller: descrizioneController,
                         keyboardType: TextInputType.multiline,
                         expands: true,
                         maxLines: null,
-
                         textAlign: TextAlign.left,
                         textAlignVertical: TextAlignVertical.top,
-
                         decoration: const InputDecoration(
                           labelText: 'Corpo del testo',
                           border: OutlineInputBorder(),
@@ -380,16 +464,33 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Annulla'),
                 ),
                 TextButton(
                   onPressed: () {
-                    if (titoloController.text.isEmpty) return;
-                    if (prioritaselezionata == 'Priorità' ||
-                        avanzamentoselezionato == 'Avanzamento')
+                    // Validazioni
+                    if (titoloController.text.isEmpty) {
+                      _schermataerrore(
+                        'Il titolo è obbligatorio per creare la task',
+                      );
                       return;
+                    }
 
+                    if (avanzamentoselezionato == 'Avanzamento') {
+                      _schermataerrore(
+                        'Selezionare lo stato di avanzamento è obbligatorio per creare la task',
+                      );
+                      return;
+                    }
+
+                    if (prioritaselezionata == 'Priorità') {
+                      _schermataerrore(
+                        'Selezionare la priorità è obbligatorio per creare la task',
+                      );
+                      return;
+                    }
+                    // Crea la task
                     setState(() {
                       _counter--;
                       _task.add(
@@ -402,7 +503,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     });
 
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                   },
                   child: const Text('Crea'),
                 ),
@@ -410,30 +511,19 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         );
-      } else {
-        //gestione errore in caso di mancanza di crediti
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Non hai più crediti disponibili!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    });
+      },
+    );
   }
 
-  //Gestione scaffold con AppBar + Body (stack)
+  // ---------------------------------------------------------------------------
+  //  UI PRINCIPALE: 3 colonne in base ad avanzamento
+  // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final daIniziare = _filtrostatoavanzamento('Da iniziare');
     final iniziato = _filtrostatoavanzamento('Iniziato');
     final completato = _filtrostatoavanzamento('Completato');
-    Image.asset(
-      'assets/SfondoToDoList.png',
-      width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
-    );
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 4, 0, 255),
@@ -449,7 +539,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      //sfondo e row con 3 colonne
       body: Stack(
         children: [
           Positioned.fill(
@@ -457,11 +546,14 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Row(
             children: [
+              // ----------------------------------------------------------------
+              // COLONNA 1: DA INIZIARE
+              // ----------------------------------------------------------------
               Expanded(
                 flex: 1,
                 child: Stack(
                   children: [
-                    // Testo crediti in alto
+                    // Crediti in alto
                     Positioned(
                       top: 20,
                       left: 20,
@@ -483,15 +575,14 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
 
-                    // Lista riquadri da iniziare nella prima colonna
+                    // Lista "Da iniziare"
                     Positioned.fill(
                       top: 160,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: daIniziare.length,
                         itemBuilder: (context, i) {
-                          final indexReale =
-                              daIniziare[i]; // indice reale nella lista _task
+                          final indexReale = daIniziare[i];
                           return InkWell(
                             onTap: () => _openTaskDetail(indexReale),
                             child: widget_taskBox(indexReale),
@@ -500,12 +591,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
 
-                    // Pulsante +
+                    // Bottone +
                     Positioned(
                       top: 100,
                       left: 290,
                       child: FloatingActionButton(
-                        onPressed: _creditnumber, // oppure _creditnumber
+                        onPressed: _creditnumber,
                         tooltip: 'Aggiungi una nuova task',
                         child: const Icon(Icons.add),
                       ),
@@ -514,35 +605,53 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
 
+              // ----------------------------------------------------------------
+              // COLONNA 2: INIZIATO
+              // ----------------------------------------------------------------
               Expanded(
                 flex: 1,
-                // Lista "Iniziato" (colonna centrale)
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 171, 12, 12),
-                  itemCount: iniziato.length,
-                  itemBuilder: (context, i) {
-                    final indexReale = iniziato[i];
-                    return InkWell(
-                      onTap: () => _openTaskDetail(indexReale),
-                      child: widget_taskBox(indexReale),
-                    );
-                  },
+                child: Column(
+                  children: [
+                    const SizedBox(height: 160), // abbassa la lista
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: iniziato.length,
+                        itemBuilder: (context, i) {
+                          final indexReale = iniziato[i];
+                          return InkWell(
+                            onTap: () => _openTaskDetail(indexReale),
+                            child: widget_taskBox(indexReale),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              // ----------------------------------------------------------------
+              // COLONNA 3: COMPLETATO
+              // ----------------------------------------------------------------
               Expanded(
                 flex: 1,
-                // Lista "Iniziato" (colonna centrale)
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 171, 12, 12),
-                  itemCount: completato.length,
-                  itemBuilder: (context, i) {
-                    final indexReale = completato[i];
-                    _counter = _counter + 2;
-                    return InkWell(
-                      onTap: () => _openTaskDetail(indexReale),
-                      child: widget_taskBox(indexReale),
-                    );
-                  },
+                child: Column(
+                  children: [
+                    const SizedBox(height: 160), // abbassa la lista
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: completato.length,
+                        itemBuilder: (context, i) {
+                          final indexReale = completato[i];
+                          return InkWell(
+                            onTap: () => _openTaskDetail(indexReale),
+                            child: widget_taskBox(indexReale),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
