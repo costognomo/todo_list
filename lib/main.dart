@@ -46,6 +46,41 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 10;
   final List<Task> _task = [];
 
+  List<int> _filtrostatoavanzamento(String stato) {
+    List<int> result = [];
+    for (int i = 0; i < _task.length; i++) {
+      if (_task[i].avanzamento == stato) {
+        result.add(i);
+      }
+    }
+    return result;
+  }
+
+  widget_taskBox(int index) {
+    return Container(
+      height: 80,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: const Color.fromARGB(230, 255, 255, 255),
+        border: Border.all(
+          color: const Color.fromARGB(200, 255, 255, 255),
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          _task[index].titolo.toString(),
+          style: const TextStyle(
+            fontSize: 21,
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   // apertura e modifica task
   void _openTaskDetail(int index) {
     final titoloController = TextEditingController(text: _task[index].titolo);
@@ -390,6 +425,9 @@ class _MyHomePageState extends State<MyHomePage> {
   //Gestione scaffold con AppBar + Body (stack)
   @override
   Widget build(BuildContext context) {
+    final daIniziare = _filtrostatoavanzamento('Da iniziare');
+    final iniziato = _filtrostatoavanzamento('Iniziato');
+    final completato = _filtrostatoavanzamento('Completato');
     Image.asset(
       'assets/SfondoToDoList.png',
       width: double.infinity,
@@ -445,42 +483,18 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
 
-                    // Lista riquadri (sotto al testo)
+                    // Lista riquadri da iniziare nella prima colonna
                     Positioned.fill(
                       top: 160,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(12),
-                        itemCount: _task.length,
-                        itemBuilder: (context, index) {
+                        itemCount: daIniziare.length,
+                        itemBuilder: (context, i) {
+                          final indexReale =
+                              daIniziare[i]; // indice reale nella lista _task
                           return InkWell(
-                            onTap: () => _openTaskDetail(index),
-                            child: Container(
-                              height: 80,
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: const Color.fromARGB(230, 255, 255, 255),
-                                border: Border.all(
-                                  color: const Color.fromARGB(
-                                    200,
-                                    255,
-                                    255,
-                                    255,
-                                  ),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  _task[index].titolo.toString(),
-                                  style: const TextStyle(
-                                    fontSize: 21,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            onTap: () => _openTaskDetail(indexReale),
+                            child: widget_taskBox(indexReale),
                           );
                         },
                       ),
@@ -502,75 +516,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
               Expanded(
                 flex: 1,
-                child: Container(
-                  color: const Color.fromARGB(255, 255, 154, 2),
-                  child: ListView(
-                    children: [
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 255, 255, 0),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 255, 165, 0),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 255, 255, 0),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 0, 128, 0),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 0, 0, 255),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 75, 0, 130),
-                      ),
-                      Container(
-                        height: 150,
-                        color: const Color.fromARGB(255, 148, 0, 211),
-                      ),
-                    ],
-                  ),
+                // Lista "Iniziato" (colonna centrale)
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 171, 12, 12),
+                  itemCount: iniziato.length,
+                  itemBuilder: (context, i) {
+                    final indexReale = iniziato[i];
+                    return InkWell(
+                      onTap: () => _openTaskDetail(indexReale),
+                      child: widget_taskBox(indexReale),
+                    );
+                  },
                 ),
               ),
               Expanded(
                 flex: 1,
-                child: Stack(
-                  children: [
-                    ListView(
-                      children: [
-                        Container(
-                          height: 450,
-                          color: const Color.fromARGB(0, 255, 0, 0),
-                        ),
-                        Container(
-                          height: 150,
-                          color: const Color.fromARGB(255, 255, 255, 0),
-                        ),
-                        Container(
-                          height: 150,
-                          color: const Color.fromARGB(255, 0, 128, 0),
-                        ),
-                        Container(
-                          height: 150,
-                          color: const Color.fromARGB(255, 0, 0, 255),
-                        ),
-                        Container(
-                          height: 150,
-                          color: const Color.fromARGB(255, 75, 0, 130),
-                        ),
-                        Container(
-                          height: 150,
-                          color: const Color.fromARGB(255, 148, 0, 211),
-                        ),
-                      ],
-                    ),
-                  ],
+                // Lista "Iniziato" (colonna centrale)
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 171, 12, 12),
+                  itemCount: completato.length,
+                  itemBuilder: (context, i) {
+                    final indexReale = completato[i];
+                    _counter = _counter + 2;
+                    return InkWell(
+                      onTap: () => _openTaskDetail(indexReale),
+                      child: widget_taskBox(indexReale),
+                    );
+                  },
                 ),
               ),
             ],
