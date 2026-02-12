@@ -44,12 +44,38 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 10;
   final List<Task> _task = [];
 
+  // ----------------------------------------------------
+  // LOG: lista eventi + helper
+  // ----------------------------------------------------
+  final List<String> _log = [];
+
+  //----------------------------------------------------------------------------
+  // CREAZIONE STRINGA LOG
+  //----------------------------------------------------------------------------
+
+  void _addLog(String msg) {
+    final now = DateTime.now();
+    final riga = "[${now.toIso8601String()}] ${msg.toUpperCase()}";
+
+    // Console (debug)
+    debugPrint(riga);
+
+    // Salva in memoria per mostrarlo in UI
+    setState(() {
+      _log.add(riga);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   //  ALERT ERRORE (riutilizzabile)
   // ---------------------------------------------------------------------------
   void _schermataerrore(String messaggio) {
+    //LOG ERRORE
+    _addLog("ERRORE: $messaggio");
+
     showDialog(
       context: context,
+
       builder: (ctx) => AlertDialog(
         title: const Text('Errore'),
         content: Text(messaggio),
@@ -132,7 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 60,
+                  height: 20,
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -140,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         end: AlignmentGeometry.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Color.fromARGB(230, 0, 11, 168),
+                          Color.fromARGB(195, 0, 11, 168),
                         ],
                       ),
                     ),
@@ -306,8 +332,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       // Se era completata -> NON incrementare crediti
                       final bool eraCompletata =
                           (_task[index].avanzamento == 'Completato');
+                      final titoloEliminato = _task[index].titolo;
 
                       _task.removeAt(index);
+
+                      if (!eraCompletata) {
+                        _addLog("ELIMINATA_:_'$titoloEliminato',");
+                      } else {
+                        _addLog(
+                          "ELIMINATA_task:_'$titoloEliminato',ERA_COMPLETATA",
+                        );
+                      }
 
                       if (!eraCompletata) {
                         _counter++; // crediti tornano solo se non completata
@@ -365,16 +400,29 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (titoloController.text.isEmpty) return;
 
                         setState(() {
-                          //----------------------------------------------------
-                          // CONTROLLO CAMBIO STATO -> +2
-                          //----------------------------------------------------
+                          //--------------------------------------------------------------------------------------------------
+                          // CONTROLLO CAMBIO STATO -> +2 | LOG INCREMENTO DI CREDITI PER COMPLETAMENTO TASK
+                          //--------------------------------------------------------------------------------------------------
                           final String statoPrima = _task[index].avanzamento;
                           final String statoDopo = avanzamentoselezionato;
 
                           //Se NON era completata e ORA lo diventa -> +2
-                          if (statoPrima != 'CSompletato' &&
+                          if (statoPrima != 'Completato' &&
                               statoDopo == 'Completato') {
                             _counter += 2;
+
+                            _addLog(
+                              "+2_CREDITI_TASK_COMPLETATA_(index=$index),",
+                            );
+                          }
+
+                          //------------------------------------------------------------------------------------------------
+                          // LOG CAMBIO DI STATO
+                          //------------------------------------------------------------------------------------------------
+                          if (statoPrima != statoDopo) {
+                            _addLog(
+                              "CAMBIO_STATO_TASK_index=$index:_'$statoPrima'_->_'$statoDopo',",
+                            );
                           }
 
                           //----------------------------------------------------
@@ -476,6 +524,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _schermataerrore(
         'i tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
       );
+      _addLog("ERRORE:_CREDITI_FINITI");
+
       return;
     }
 
@@ -634,6 +684,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           prioritaselezionata,
                         ),
                       );
+                      _addLog(
+                        "CREATA task:_'${titoloController.text}'_|_priorità=$prioritaselezionata\_|_avanzamento=$avanzamentoselezionato\_|_crediti=$_counter,",
+                      );
                     });
 
                     Navigator.pop(dialogContext);
@@ -671,6 +724,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
+
+        //----------------------------------------------------------------------
+        // PULSANTE PER VEDERE IL LOG
+        //----------------------------------------------------------------------
+        actions: [
+          IconButton(icon: const Icon(Icons.article), onPressed: _showLog),
+        ],
       ),
       body: Stack(
         children: [
@@ -810,6 +870,30 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  //------------------------------------------------------------------------------
+  // SCHEDA TEMPORANEA PER LA VISUALIZZAZIONE DEI LOG
+  //------------------------------------------------------------------------------
+
+  void _showLog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("LOG"),
+        content: SizedBox(
+          width: 600,
+          height: 400,
+          child: SingleChildScrollView(child: Text(_log.join("\n"))),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Chiudi"),
           ),
         ],
       ),
