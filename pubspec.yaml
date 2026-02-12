@@ -27,4 +27,7 @@ flutter_icons:
   ios: true
   image_path: "assets/icon/logo_sito_g_nous.png"
 
-  
+  windows:
+    generate: true
+    image_path: assets/icon/logo_sito_g_nous.png
+    icon_size: 256

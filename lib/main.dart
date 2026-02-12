@@ -420,10 +420,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       _task.removeAt(index);
 
                       if (!eraCompletata) {
-                        _addLog("ELIMINATA_:_'$titoloEliminato',");
+                        _addLog("ELIMINATA : '$titoloEliminato' ");
                       } else {
                         _addLog(
-                          "ELIMINATA_task:_'$titoloEliminato',ERA_COMPLETATA",
+                          "ELIMINATA task: '$titoloEliminato', ERA COMPLETATA",
                         );
                       }
 
@@ -496,7 +496,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             _counter += 2;
 
                             _addLog(
-                              "+2_CREDITI_TASK_COMPLETATA_(index=$index),",
+                              "+2 CREDITI TASK COMPLETATA (index=$index) ",
                             );
                           }
 
@@ -505,7 +505,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           //------------------------------------------------------------------------------------------------
                           if (statoPrima != statoDopo) {
                             _addLog(
-                              "CAMBIO_STATO_TASK_index=$index:_'$statoPrima'_->_'$statoDopo',",
+                              "CAMBIO STATO TASK index=$index: '$statoPrima' -> '$statoDopo'",
                             );
                           }
 
@@ -554,7 +554,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // ombra leggera
         boxShadow: const [
-          BoxShadow(color: Color.fromARGB(95, 38, 0, 255), blurRadius: 10),
+          BoxShadow(color: Color.fromARGB(103, 38, 0, 255), blurRadius: 10),
         ],
       ),
 
@@ -770,7 +770,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                       _addLog(
-                        "CREATA task:_'${titoloController.text}'_|_priorità=$prioritaselezionata\_|_avanzamento=$avanzamentoselezionato\_|_crediti=$_counter,",
+                        "CREATA task: '${titoloController.text}' | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_counter,",
                       );
                     });
                     _saveData();
@@ -815,7 +815,15 @@ class _MyHomePageState extends State<MyHomePage> {
         // PULSANTE PER VEDERE IL LOG
         //----------------------------------------------------------------------
         actions: [
-          IconButton(icon: const Icon(Icons.article), onPressed: _showLog),
+          IconButton(
+            icon: const Icon(Icons.article),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => LogPage(log: _log)),
+              );
+            },
+          ),
         ],
       ),
       body: Stack(
@@ -869,7 +877,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ElevatedButton(
                   onPressed: _creditnumber,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(136, 17, 139, 238),
+                    backgroundColor: const Color.fromARGB(255, 55, 0, 255),
                     foregroundColor: const Color.fromARGB(255, 253, 243, 243),
                   ),
                   child: const Text(
@@ -961,25 +969,125 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+//------------------------------------------------------------------------------
+// PAGINA SEPARATA PER MOSTRARE IL LOG CON RICERCA TESTUALE
+//------------------------------------------------------------------------------
 
-  //------------------------------------------------------------------------------
-  // SCHEDA TEMPORANEA PER LA VISUALIZZAZIONE DEI LOG
-  //------------------------------------------------------------------------------
+class LogPage extends StatefulWidget {
+  // Ricevimento log completo
+  final List<String> log;
 
-  void _showLog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("LOG"),
-        content: SizedBox(
-          width: 600,
-          height: 400,
-          child: SingleChildScrollView(child: Text(_log.join("\n"))),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Chiudi"),
+  const LogPage({super.key, required this.log});
+
+  @override
+  State<LogPage> createState() => _LogPageState();
+}
+
+class _LogPageState extends State<LogPage> {
+  // Controller per leggere/modificare il testo della barra di ricerca
+  final TextEditingController _searchController = TextEditingController();
+
+  // Lista dei log filtrati (quelli che matchano la ricerca)
+  late List<String> _filteredLog;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // All'inizio mostriamo tutto il log (nessun filtro)
+    _filteredLog = widget.log.reversed.toList();
+
+    // aggiorniamo la lista filtrata
+    _searchController.addListener(_applyFilter);
+  }
+
+  // Funzione che applica il filtro e ordina dal più recente al più vecchio
+  void _applyFilter() {
+    final query = _searchController.text.trim();
+
+    // lista completa log
+    List<String> baseList = widget.log;
+
+    // Se c'è una ricerca, filtriamo
+    if (query.isNotEmpty) {
+      final qLower = query.toLowerCase();
+
+      baseList = widget.log.where((riga) {
+        return riga.toLowerCase().contains(qLower);
+      }).toList();
+    }
+
+    //inverte l'ordine (ultimi log → sopra)
+    setState(() {
+      _filteredLog = baseList.reversed.toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    //rilascio controller poiché la pagina è stata distrutta
+    _searchController.removeListener(_applyFilter);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // AppBar della pagina log
+      appBar: AppBar(title: const Text("Log")),
+
+      // Body: colonna con barra di ricerca + lista
+      body: Column(
+        children: [
+          //------------------------------------------------------------------------
+          // BARRA DI RICERCA
+          //------------------------------------------------------------------------
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: "Cerca nel log",
+                hintText: "Scrivi una parola o una parte della frase...",
+                prefixIcon: const Icon(Icons.search),
+
+                // Pulsante X per cancellare velocemente il testo
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          // Cancella testo -> listener aggiorna automaticamente lista
+                          _searchController.clear();
+                        },
+                      ),
+
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+
+          //------------------------------------------------------------------------
+          // RISULTATI (LISTA LOG FILTRATA)
+          //------------------------------------------------------------------------
+          Expanded(
+            // Se non ci sono risultati (o log vuoto) appare un messaggio
+            child: _filteredLog.isEmpty
+                ? const Center(child: Text("Nessun risultato"))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _filteredLog.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(_filteredLog[index]),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
