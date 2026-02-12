@@ -77,27 +77,79 @@ class _MyHomePageState extends State<MyHomePage> {
   // ---------------------------------------------------------------------------
   //  BOX UI riutilizzabile per una task (
   // ---------------------------------------------------------------------------
-  Widget widget_taskBox(int index) {
+  Widget widget_taskBox(int index, Color coloreTask) {
     return Container(
-      height: 80,
-      margin: const EdgeInsets.only(bottom: 12),
+      constraints: const BoxConstraints(minHeight: 100),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: const Color.fromARGB(230, 255, 255, 255),
-        border: Border.all(
-          color: const Color.fromARGB(200, 255, 255, 255),
-          width: 2,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          _task[index].titolo,
-          style: const TextStyle(
-            fontSize: 21,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+        borderRadius: BorderRadius.circular(20),
+        color: const Color.fromARGB(230, 0, 11, 168),
+        border: Border.all(color: const Color.fromARGB(117, 0, 0, 0), width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(151, 66, 52, 255), //colore ombra
+            blurRadius: 12, //quanto è morbida
           ),
-        ),
+        ],
+      ),
+
+      //------------------------------------------------------------------------
+      // CONTENUTO: titolo + descrizione
+      //------------------------------------------------------------------------
+      padding: const EdgeInsets.all(12),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // TITOLO
+          Text(
+            _task[index].titolo,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis, // evita testi troppo lunghi
+          ),
+
+          const SizedBox(height: 6),
+          SizedBox(
+            child: Stack(
+              children: [
+                // DESCRIZIONE
+                Text(
+                  _task[index].descrizione,
+                  softWrap: true,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 5,
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 60,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: AlignmentGeometry.topCenter,
+                        end: AlignmentGeometry.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Color.fromARGB(230, 0, 11, 168),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -150,7 +202,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: prioritaselezionata,
+                              initialValue: prioritaselezionata,
                               items: const [
                                 DropdownMenuItem(
                                   value: 'Bassa',
@@ -313,6 +365,22 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (titoloController.text.isEmpty) return;
 
                         setState(() {
+                          //----------------------------------------------------
+                          // CONTROLLO CAMBIO STATO -> +2
+                          //----------------------------------------------------
+                          final String statoPrima = _task[index].avanzamento;
+                          final String statoDopo = avanzamentoselezionato;
+
+                          //Se NON era completata e ORA lo diventa -> +2
+                          if (statoPrima != 'CSompletato' &&
+                              statoDopo == 'Completato') {
+                            _counter += 2;
+                          }
+
+                          //----------------------------------------------------
+                          // AGGIORNA LA TASK
+                          //----------------------------------------------------
+
                           _task[index].titolo = titoloController.text;
                           _task[index].descrizione = descrizioneController.text;
                           _task[index].priorita = prioritaselezionata;
@@ -330,6 +398,71 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         );
       },
+    );
+  }
+
+  // -----------------------------------------------------------------
+  // WIDGET RIUTILIZZABILE PER UNA COLONNA
+  // -----------------------------------------------------------------
+  Widget buildColonnaKanban({
+    required String titolo,
+    required List<int> indici,
+
+    //PARAMETRI COLORE
+    required Color ColoreTitolo,
+  }) {
+    return Container(
+      margin: const EdgeInsets.all(12),
+
+      // SFONDO BIANCO TRASPARENTE + BORDI ARROTONDATI
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(136, 0, 0, 0), // trasparenza
+        borderRadius: BorderRadius.circular(20),
+
+        // ombra leggera
+        boxShadow: const [
+          BoxShadow(color: Color.fromARGB(95, 38, 0, 255), blurRadius: 10),
+        ],
+      ),
+
+      child: Column(
+        children: [
+          // -------------------------------
+          // TITOLO DELLA COLONNA
+          // -------------------------------
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              titolo,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: ColoreTitolo,
+              ),
+            ),
+          ),
+
+          const Divider(height: 1),
+
+          // -------------------------------
+          // LISTA TASK
+          // -------------------------------
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: indici.length,
+              itemBuilder: (context, i) {
+                final indexReale = indici[i];
+
+                return InkWell(
+                  onTap: () => _openTaskDetail(indexReale),
+                  child: widget_taskBox(indexReale, ColoreTitolo),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -544,6 +677,64 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned.fill(
             child: Image.asset('assets/SfondoToDoList.png', fit: BoxFit.cover),
           ),
+
+          //Crediti in alto
+          Positioned(
+            top: 20,
+            left: 20,
+            right: 20,
+            child: Text(
+              'I tuoi crediti sono: $_counter',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 50,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(2, 2),
+                    blurRadius: 3,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // --------------------------------------------------
+          //  BOTTONE LARGO TUTTO LO SCHERMO
+          // --------------------------------------------------
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 100, 12, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color.fromARGB(255, 255, 255, 255), // colore ombra
+                    blurRadius: 20, // quanto è morbida
+                    spreadRadius: 2, // quanto si espande
+                  ),
+                ],
+              ),
+
+              child: SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: _creditnumber,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(136, 17, 139, 238),
+                    foregroundColor: const Color.fromARGB(255, 253, 243, 243),
+                  ),
+                  child: const Text(
+                    'AGGIUNGI NUOVA TASK',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           Row(
             children: [
               // ----------------------------------------------------------------
@@ -553,52 +744,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 flex: 1,
                 child: Stack(
                   children: [
-                    // Crediti in alto
-                    Positioned(
-                      top: 20,
-                      left: 20,
-                      right: 20,
-                      child: Text(
-                        'I tuoi crediti sono: $_counter',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 50,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              offset: Offset(2, 2),
-                              blurRadius: 3,
-                              color: Colors.black,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Lista "Da iniziare"
+                    // Lista "DA INIZIARE"
                     Positioned.fill(
                       top: 160,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: daIniziare.length,
-                        itemBuilder: (context, i) {
-                          final indexReale = daIniziare[i];
-                          return InkWell(
-                            onTap: () => _openTaskDetail(indexReale),
-                            child: widget_taskBox(indexReale),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Bottone +
-                    Positioned(
-                      top: 100,
-                      left: 290,
-                      child: FloatingActionButton(
-                        onPressed: _creditnumber,
-                        tooltip: 'Aggiungi una nuova task',
-                        child: const Icon(Icons.add),
+                      child: buildColonnaKanban(
+                        titolo: 'DA INIZIARE',
+                        indici: daIniziare,
+                        ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
                       ),
                     ),
                   ],
@@ -614,17 +766,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     const SizedBox(height: 160), // abbassa la lista
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: iniziato.length,
-                        itemBuilder: (context, i) {
-                          final indexReale = iniziato[i];
-                          return InkWell(
-                            onTap: () => _openTaskDetail(indexReale),
-                            child: widget_taskBox(indexReale),
-                          );
-                        },
-                      ),
+                      child:
+                          // Lista "INIZIATO"
+                          Positioned.fill(
+                            top: 160,
+                            child: buildColonnaKanban(
+                              titolo: 'INIZIATO',
+                              indici: iniziato,
+                              ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
+                            ),
+                          ),
                     ),
                   ],
                 ),
@@ -639,17 +790,21 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     const SizedBox(height: 160), // abbassa la lista
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: completato.length,
-                        itemBuilder: (context, i) {
-                          final indexReale = completato[i];
-                          return InkWell(
-                            onTap: () => _openTaskDetail(indexReale),
-                            child: widget_taskBox(indexReale),
-                          );
-                        },
-                      ),
+                      child:
+                          // Lista "COMPLETATO"
+                          Positioned.fill(
+                            top: 160,
+                            child: buildColonnaKanban(
+                              titolo: 'COMPLETATO',
+                              indici: completato,
+                              ColoreTitolo: const Color.fromARGB(
+                                255,
+                                206,
+                                206,
+                                206,
+                              ),
+                            ),
+                          ),
                     ),
                   ],
                 ),
