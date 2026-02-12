@@ -37,8 +37,8 @@ class MyHomePage extends StatefulWidget {
 class Task {
   String titolo;
   String descrizione;
-  String avanzamento; // "Da iniziare" | "Iniziato" | "Completato"
-  String priorita; // "Bassa" | "Media" | "Alta"
+  String avanzamento; // 'Da iniziare' | 'Iniziato' | 'Completato'
+  String priorita; // 'Bassa' | 'Media' | 'Alta'
 
   Task(this.titolo, this.descrizione, this.avanzamento, this.priorita);
 
@@ -56,8 +56,8 @@ class Task {
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     json['titolo'] ?? '',
     json['descrizione'] ?? '',
-    json['avanzamento'] ?? '',
-    json['priotita'] ?? '',
+    json['avanzamento'] ?? 'da iniziare',
+    json['priotita'] ?? 'Bassa',
   );
 }
 
@@ -70,12 +70,12 @@ class _MyHomePageState extends State<MyHomePage> {
   //----------------------------------------------------------------------------
 
   // Nome del file dove salviamo tutto
-  static const String _fileName = "todo_data.json";
+  static const String _fileName = 'todo_data.json';
 
   // Ritorna il file fisico nella cartella dell’app
   Future<File> _getDataFile() async {
     final dir = await getApplicationDocumentsDirectory();
-    return File("${dir.path}/$_fileName");
+    return File('${dir.path}/$_fileName');
   }
 
   // Salva task + counter + log
@@ -125,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     } catch (e) {
       // Se il file è corrotto o il json non è valido
-      _schermataerrore("Impossibile caricare i dati salvati: $e");
+      _schermataerrore('Impossibile caricare i dati salvati: $e');
     }
   }
 
@@ -137,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // CREAZIONE STRINGA LOG
   void _addLog(String msg) {
     final now = DateTime.now();
-    final riga = "[${now.toIso8601String()}] ${msg.toUpperCase()}";
+    final riga = '[${now.toIso8601String()}] ${msg.toUpperCase()}';
 
     // Console (debug)
     debugPrint(riga);
@@ -154,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // ---------------------------------------------------------------------------
   void _schermataerrore(String messaggio) {
     //LOG ERRORE
-    _addLog("ERRORE: $messaggio");
+    _addLog('ERRORE: $messaggio');
 
     showDialog(
       context: context,
@@ -280,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
     String prioritaselezionata = _task[index].priorita;
     String avanzamentoselezionato = _task[index].avanzamento;
 
-    // Copie originali per "Annulla modifiche"
+    // Copie originali per 'Annulla modifiche'
     final titoloOriginale = _task[index].titolo;
     final descrizioneOriginale = _task[index].descrizione;
     final prioritaOriginale = _task[index].priorita;
@@ -291,7 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (dialogContext) {
         bool isEditing = false; // stato locale: editing on/off
 
-        // Regola: se la task è completata, è "bloccata"
+        // Regola: se la task è completata, è 'bloccata'
         final bool isCompletata = (_task[index].avanzamento == 'Completato');
 
         return StatefulBuilder(
@@ -420,10 +420,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       _task.removeAt(index);
 
                       if (!eraCompletata) {
-                        _addLog("ELIMINATA : '$titoloEliminato' ");
+                        _addLog('ELIMINATA : "$titoloEliminato" ');
                       } else {
                         _addLog(
-                          "ELIMINATA task: '$titoloEliminato', ERA COMPLETATA",
+                          'ELIMINATA task: "$titoloEliminato", ERA COMPLETATA',
                         );
                       }
 
@@ -496,7 +496,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             _counter += 2;
 
                             _addLog(
-                              "+2 CREDITI TASK COMPLETATA (index=$index) ",
+                              '+2 CREDITI TASK COMPLETATA (index=$index) ',
                             );
                           }
 
@@ -505,7 +505,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           //------------------------------------------------------------------------------------------------
                           if (statoPrima != statoDopo) {
                             _addLog(
-                              "CAMBIO STATO TASK index=$index: '$statoPrima' -> '$statoDopo'",
+                              'CAMBIO STATO TASK index=$index: "$statoPrima" -> "$statoDopo"',
                             );
                           }
 
@@ -609,7 +609,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _schermataerrore(
         'i tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
       );
-      _addLog("ERRORE:_CREDITI_FINITI");
+      _addLog('ERRORE:_CREDITI_FINITI');
 
       return;
     }
@@ -770,7 +770,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                       _addLog(
-                        "CREATA task: '${titoloController.text}' | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_counter,",
+                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_counter,',
                       );
                     });
                     _saveData();
@@ -820,7 +820,14 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => LogPage(log: _log)),
+                MaterialPageRoute(
+                  builder: (_) => LogPage(
+                    log: _log,
+                    onReset: () async {
+                      await _saveData();
+                    },
+                  ),
+                ),
               );
             },
           ),
@@ -898,7 +905,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 flex: 1,
                 child: Stack(
                   children: [
-                    // Lista "DA INIZIARE"
+                    // Lista 'DA INIZIARE'
                     Positioned.fill(
                       top: 160,
                       child: buildColonnaKanban(
@@ -916,22 +923,13 @@ class _MyHomePageState extends State<MyHomePage> {
               // ----------------------------------------------------------------
               Expanded(
                 flex: 1,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 160), // abbassa la lista
-                    Expanded(
-                      child:
-                          // Lista "INIZIATO"
-                          Positioned.fill(
-                            top: 160,
-                            child: buildColonnaKanban(
-                              titolo: 'INIZIATO',
-                              indici: iniziato,
-                              ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
-                            ),
-                          ),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 160),
+                  child: buildColonnaKanban(
+                    titolo: 'INIZIATO',
+                    indici: iniziato,
+                    ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
+                  ),
                 ),
               ),
 
@@ -940,27 +938,13 @@ class _MyHomePageState extends State<MyHomePage> {
               // ----------------------------------------------------------------
               Expanded(
                 flex: 1,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 160), // abbassa la lista
-                    Expanded(
-                      child:
-                          // Lista "COMPLETATO"
-                          Positioned.fill(
-                            top: 160,
-                            child: buildColonnaKanban(
-                              titolo: 'COMPLETATO',
-                              indici: completato,
-                              ColoreTitolo: const Color.fromARGB(
-                                255,
-                                206,
-                                206,
-                                206,
-                              ),
-                            ),
-                          ),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 160),
+                  child: buildColonnaKanban(
+                    titolo: 'COMPLETATO',
+                    indici: completato,
+                    ColoreTitolo: const Color.fromARGB(255, 206, 206, 206),
+                  ),
                 ),
               ),
             ],
@@ -978,7 +962,10 @@ class LogPage extends StatefulWidget {
   // Ricevimento log completo
   final List<String> log;
 
-  const LogPage({super.key, required this.log});
+  //callback per resettatre totalmente log
+  final Future<void> Function()? onReset;
+
+  const LogPage({super.key, required this.log, this.onReset});
 
   @override
   State<LogPage> createState() => _LogPageState();
@@ -1035,29 +1022,55 @@ class _LogPageState extends State<LogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       // AppBar della pagina log
-      appBar: AppBar(title: const Text("Log")),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text('Log', style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
+
+        //----------------------------------------------------------------------
+        // CREAZIONE PULSANTE ELIMINAZIONE DESTRA
+        //----------------------------------------------------------------------
+        actions: [
+          IconButton(
+            tooltip: 'reset log',
+            icon: const Icon(Icons.delete),
+            onPressed: _resetLog,
+            padding: const EdgeInsets.only(right: 12),
+          ),
+        ],
+      ),
 
       // Body: colonna con barra di ricerca + lista
       body: Column(
         children: [
-          //------------------------------------------------------------------------
+          //--------------------------------------------------------------------
           // BARRA DI RICERCA
-          //------------------------------------------------------------------------
+          //--------------------------------------------------------------------
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
+              //testo scritto dentro
               controller: _searchController,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: "Cerca nel log",
-                hintText: "Scrivi una parola o una parte della frase...",
-                prefixIcon: const Icon(Icons.search),
+                //colore 'cerca nel log'
+                labelText: 'Cerca nel log',
+                labelStyle: const TextStyle(color: Colors.white),
+
+                //colore 'scrivi una parola o una parte della frase...'
+                hintText: 'Scrivi una parola o una parte della frase...',
+                hintStyle: const TextStyle(color: Colors.white),
+
+                //colore icone
+                prefixIcon: const Icon(Icons.search, color: Colors.white),
 
                 // Pulsante X per cancellare velocemente il testo
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear, color: Colors.white),
                         onPressed: () {
                           // Cancella testo -> listener aggiorna automaticamente lista
                           _searchController.clear();
@@ -1075,15 +1088,38 @@ class _LogPageState extends State<LogPage> {
           Expanded(
             // Se non ci sono risultati (o log vuoto) appare un messaggio
             child: _filteredLog.isEmpty
-                ? const Center(child: Text("Nessun risultato"))
+                ? const Center(
+                    child: Text(
+                      'Nessun risultato',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: _filteredLog.length,
                     itemBuilder: (context, index) {
-                      return Card(
+                      //--------------------------------------------------------
+                      // BOX PERSONALIZZATO PER IL LOG
+                      //--------------------------------------------------------
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 40, 160),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(_filteredLog[index]),
+
+                          child: Text(
+                            _filteredLog[index],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -1092,5 +1128,48 @@ class _LogPageState extends State<LogPage> {
         ],
       ),
     );
+  }
+
+  //------------------------------------------------------------------------------
+  // RESET LOG: chiede conferma e poi svuota il log
+  //------------------------------------------------------------------------------
+  Future<void> _resetLog() async {
+    // 1) Chiediamo conferma PRIMA di fare qualsiasi modifica ai dati
+    final bool? conferma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Reset log'),
+          content: const Text('Vuoi cancellare definitivamente tutto il log?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Cancella'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Se l'utente annulla (false) o chiude il dialog (null), non accade nulla
+    if (conferma != true) return;
+
+    // svuotamento log in memoria
+    widget.log.clear();
+
+    // Aggiornamento UI della pagina log
+    setState(() {
+      _searchController.clear();
+      _filteredLog.clear();
+    });
+
+    // Aggiornamento file di rimando da home
+    if (widget.onReset != null) {
+      await widget.onReset!();
+    }
   }
 }
