@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert'; // jsonEncode/jsonDecode
+import 'dart:io'; // File
+import 'package:path_provider/path_provider.dart'; // cartella app
 
 void main() {
   runApp(const MyApp());
@@ -38,21 +41,100 @@ class Task {
   String priorita; // "Bassa" | "Media" | "Alta"
 
   Task(this.titolo, this.descrizione, this.avanzamento, this.priorita);
+
+  //----------------------------------------------------------------------------
+  // SERIALIZZAZIONE JSON
+  //----------------------------------------------------------------------------
+  Map<String, dynamic> toJson() => {
+    'titolo': titolo,
+    'descrizione': descrizione,
+    'avanzamento': avanzamento,
+    'priorita': priorita,
+  };
+
+  // creazione task da mappa JSON
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+    json['titolo'] ?? '',
+    json['descrizione'] ?? '',
+    json['avanzamento'] ?? '',
+    json['priotita'] ?? '',
+  );
 }
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 10;
   final List<Task> _task = [];
 
+  //----------------------------------------------------------------------------
+  // SALVATAGGIO / CARICAMENTO NELLO STATE
+  //----------------------------------------------------------------------------
+
+  // Nome del file dove salviamo tutto
+  static const String _fileName = "todo_data.json";
+
+  // Ritorna il file fisico nella cartella dell’app
+  Future<File> _getDataFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File("${dir.path}/$_fileName");
+  }
+
+  // Salva task + counter + log
+  Future<void> _saveData() async {
+    final file = await _getDataFile();
+
+    final data = {
+      'counter': _counter,
+      'log': _log,
+      'tasks': _task.map((t) => t.toJson()).toList(),
+    };
+
+    await file.writeAsString(jsonEncode(data));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData(); // ricarica tutto appena l’app parte
+  }
+
+  // Carica task + counter + log
+  Future<void> _loadData() async {
+    try {
+      final file = await _getDataFile();
+      if (!await file.exists()) return;
+
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+
+      final loadedCounter = decoded['counter'] as int? ?? 10;
+      final loadedLog = (decoded['log'] as List?)?.cast<String>() ?? <String>[];
+
+      final tasksJson = (decoded['tasks'] as List?) ?? [];
+      final loadedTasks = tasksJson
+          .map((e) => Task.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _counter = loadedCounter;
+        _log
+          ..clear()
+          ..addAll(loadedLog);
+        _task
+          ..clear()
+          ..addAll(loadedTasks);
+      });
+    } catch (e) {
+      // Se il file è corrotto o il json non è valido
+      _schermataerrore("Impossibile caricare i dati salvati: $e");
+    }
+  }
+
   // ----------------------------------------------------
   // LOG: lista eventi + helper
   // ----------------------------------------------------
   final List<String> _log = [];
 
-  //----------------------------------------------------------------------------
   // CREAZIONE STRINGA LOG
-  //----------------------------------------------------------------------------
-
   void _addLog(String msg) {
     final now = DateTime.now();
     final riga = "[${now.toIso8601String()}] ${msg.toUpperCase()}";
@@ -64,6 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _log.add(riga);
     });
+    _saveData();
   }
 
   // ---------------------------------------------------------------------------
@@ -348,6 +431,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         _counter++; // crediti tornano solo se non completata
                       }
                     });
+                    _saveData();
 
                     Navigator.pop(dialogContext);
                   },
@@ -434,6 +518,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           _task[index].priorita = prioritaselezionata;
                           _task[index].avanzamento = avanzamentoselezionato;
                         });
+                        _saveData();
 
                         Navigator.pop(dialogContext);
                       },
@@ -688,6 +773,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         "CREATA task:_'${titoloController.text}'_|_priorità=$prioritaselezionata\_|_avanzamento=$avanzamentoselezionato\_|_crediti=$_counter,",
                       );
                     });
+                    _saveData();
 
                     Navigator.pop(dialogContext);
                   },

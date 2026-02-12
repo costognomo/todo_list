@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -19,9 +20,11 @@ flutter:
   uses-material-design: true
   
   assets:
-  - assets/
+    - assets/
 
 flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon/logo_sito_g_nous.png"
+
+  
