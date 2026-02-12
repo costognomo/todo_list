@@ -56,14 +56,55 @@ class Task {
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     json['titolo'] ?? '',
     json['descrizione'] ?? '',
-    json['avanzamento'] ?? 'da iniziare',
-    json['priotita'] ?? 'Bassa',
+    json['avanzamento'] ?? 'Da iniziare',
+    json['priorita'] ?? 'Bassa',
   );
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 10;
+  int _crediti = 10;
   final List<Task> _task = [];
+  //------------------------------------------------------------------------------
+  // ASSEGNAZIONE PESO ALLE PRIORITA
+  //------------------------------------------------------------------------------
+  int _pesoPriorita(String priorita) {
+    switch (priorita) {
+      case 'Alta':
+        return 3;
+      case 'Media':
+        return 2;
+      case 'Bassa':
+        return 1;
+      default:
+        // Se per qualche motivo la priorità è vuota/sbagliata finisce in fondo
+        return 0;
+    }
+  }
+
+  //------------------------------------------------------------------------------
+  // ORDINAMENTO INDICI ALTO-> MEDIO -> BASSO
+  //------------------------------------------------------------------------------
+  List<int> _ordinaIndiciPerPriorita(List<int> indici) {
+    // Creazione copia per non modificare la lista originale passata
+    final sorted = List<int>.from(indici);
+
+    // sort: ritorna negativo se a deve stare prima di b
+    sorted.sort((a, b) {
+      final pa = _pesoPriorita(_task[a].priorita);
+      final pb = _pesoPriorita(_task[b].priorita);
+
+      //confronto priorità
+      final cmpPriorita = pb.compareTo(pa);
+      if (cmpPriorita != 0) return cmpPriorita;
+
+      // Se priorità uguale ordinamento per più recente
+      if (cmpPriorita != 0) return cmpPriorita;
+
+      return b.compareTo(a);
+    });
+
+    return sorted;
+  }
 
   //----------------------------------------------------------------------------
   // SALVATAGGIO / CARICAMENTO NELLO STATE
@@ -83,7 +124,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final file = await _getDataFile();
 
     final data = {
-      'counter': _counter,
+      'counter': _crediti,
       'log': _log,
       'tasks': _task.map((t) => t.toJson()).toList(),
     };
@@ -115,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
           .toList();
 
       setState(() {
-        _counter = loadedCounter;
+        _crediti = loadedCounter;
         _log
           ..clear()
           ..addAll(loadedLog);
@@ -428,7 +469,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
 
                       if (!eraCompletata) {
-                        _counter++; // crediti tornano solo se non completata
+                        _crediti++; // crediti tornano solo se non completata
                       }
                     });
                     _saveData();
@@ -493,7 +534,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           //Se NON era completata e ORA lo diventa -> +2
                           if (statoPrima != 'Completato' &&
                               statoDopo == 'Completato') {
-                            _counter += 2;
+                            _crediti += 2;
 
                             _addLog(
                               '+2 CREDITI TASK COMPLETATA (index=$index) ',
@@ -605,7 +646,7 @@ class _MyHomePageState extends State<MyHomePage> {
   //  Nota: nessun setState esterno al dialog
   // ---------------------------------------------------------------------------
   void _creditnumber() {
-    if (_counter < 1) {
+    if (_crediti < 1) {
       _schermataerrore(
         'i tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
       );
@@ -760,7 +801,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
                     // Crea la task
                     setState(() {
-                      _counter--;
+                      _crediti--;
                       _task.add(
                         Task(
                           titoloController.text,
@@ -769,8 +810,24 @@ class _MyHomePageState extends State<MyHomePage> {
                           prioritaselezionata,
                         ),
                       );
+
+                      //------------------------------------------------------------------------
+                      // SE LA TASK NASCE GIÀ COMPLETATA ASSEGNARE COMUNQE I 2 CREDITI
+                      //------------------------------------------------------------------------
+                      if (avanzamentoselezionato == 'Completato') {
+                        _crediti += 2;
+
+                        _addLog(
+                          '+2 CREDITI: TASK CREATA GIÀ COMPLETATA ("${titoloController.text}")',
+                        );
+                      }
+
+                      //--------------------------------------------------------
+                      // LOG CREAZIONE TASK
+                      //--------------------------------------------------------
+
                       _addLog(
-                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_counter,',
+                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti,',
                       );
                     });
                     _saveData();
@@ -795,6 +852,9 @@ class _MyHomePageState extends State<MyHomePage> {
     final daIniziare = _filtrostatoavanzamento('Da iniziare');
     final iniziato = _filtrostatoavanzamento('Iniziato');
     final completato = _filtrostatoavanzamento('Completato');
+    final daIniziareOrdinato = _ordinaIndiciPerPriorita(daIniziare);
+    final iniziatoOrdinato = _ordinaIndiciPerPriorita(iniziato);
+    final completatoOrdinato = _ordinaIndiciPerPriorita(completato);
 
     return Scaffold(
       appBar: AppBar(
@@ -845,7 +905,7 @@ class _MyHomePageState extends State<MyHomePage> {
             left: 20,
             right: 20,
             child: Text(
-              'I tuoi crediti sono: $_counter',
+              'I tuoi crediti sono: $_crediti',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 50,
@@ -910,7 +970,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       top: 160,
                       child: buildColonnaKanban(
                         titolo: 'DA INIZIARE',
-                        indici: daIniziare,
+                        indici: daIniziareOrdinato,
                         ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
                       ),
                     ),
@@ -927,7 +987,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   padding: const EdgeInsets.only(top: 160),
                   child: buildColonnaKanban(
                     titolo: 'INIZIATO',
-                    indici: iniziato,
+                    indici: iniziatoOrdinato,
                     ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
                   ),
                 ),
@@ -942,7 +1002,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   padding: const EdgeInsets.only(top: 160),
                   child: buildColonnaKanban(
                     titolo: 'COMPLETATO',
-                    indici: completato,
+                    indici: completatoOrdinato,
                     ColoreTitolo: const Color.fromARGB(255, 206, 206, 206),
                   ),
                 ),
