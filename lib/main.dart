@@ -71,6 +71,171 @@ class Task {
             DateTime.now();
 }
 
+//------------------------------------------------------------------------------
+// MODELLO CRONOLOGIA CREDITI
+//------------------------------------------------------------------------------
+class EventoCrediti {
+  String titoloTask; // Nome della task coinvolta
+  int valore; // Quantità di crediti (+2, +1, -1)
+  DateTime data; // Momento in cui è avvenuta la modifica
+
+  // Acquisizione orario
+  EventoCrediti(this.titoloTask, this.valore) : data = DateTime.now();
+
+  //--------------------------------------------------------------------------
+  // SERIALIZZAZIONE → quando si carica su file JSON
+  //--------------------------------------------------------------------------
+  Map<String, dynamic> toJson() => {
+    'titoloTask': titoloTask,
+    'valore': valore,
+    'data': data.toIso8601String(),
+  };
+
+  //--------------------------------------------------------------------------
+  // DESERIALIZZAZIONE → quando si recupera dal file JSON
+  //--------------------------------------------------------------------------
+  factory EventoCrediti.fromJson(Map<String, dynamic> json) {
+    final e = EventoCrediti(json['titoloTask'] ?? '', json['valore'] ?? 0);
+
+    // Ripristinazione della data salvata
+    e.data = DateTime.tryParse(json['data'] ?? '') ?? DateTime.now();
+
+    return e;
+  }
+}
+
+//------------------------------------------------------------------------------
+// PAGINA CRONOLOGIA CREDITI
+//------------------------------------------------------------------------------
+class CronologiaSpesePage extends StatelessWidget {
+  final List<EventoCrediti> cronologia;
+
+  const CronologiaSpesePage({super.key, required this.cronologia});
+
+  @override
+  Widget build(BuildContext context) {
+    // invertimento per avere i più recenti sopra
+    final lista = cronologia.reversed.toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "STORICO CREDITI",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      backgroundColor: Colors.black,
+
+      //----------------------------------------------------------------------
+      // LISTA SCORRIBILE MOVIMENTI
+      //----------------------------------------------------------------------
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: lista.length,
+        itemBuilder: (context, index) {
+          final evento = lista[index];
+
+          //------------------------------------------------------------------
+          // SCELTA COLORE IN BASE AL TIPO DI MOVIMENTO
+          //------------------------------------------------------------------
+          Color colore;
+          if (evento.valore == -1) {
+            colore = Colors.red; // creazione task
+          } else if (evento.valore == 1) {
+            colore = Colors.yellow; // eliminazione
+          } else {
+            colore = Colors.green; // completamento
+          }
+
+          //------------------------------------------------------------------
+          // FORMATTAZIONE DATA
+          //------------------------------------------------------------------
+          final dataFormattata = DateFormat(
+            'dd/MM/yyyy HH:mm',
+          ).format(evento.data);
+
+          //------------------------------------------------------------------
+          // BOX GRAFICO DEL MOVIMENTO
+          //------------------------------------------------------------------
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 0, 40, 160),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            //----------------------------------------------------------------------
+            // CONTENUTO BOX: sinistra (titolo+data) | destra (numero centrato)
+            //----------------------------------------------------------------------
+            child: IntrinsicHeight(
+              child: Row(
+                //------------------------------------------------------------------
+                // stretch = il contenitore del numero si estende in altezza
+                //------------------------------------------------------------------
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  //----------------------------------------------------------------
+                  // SINISTRA: titolo + data
+                  //----------------------------------------------------------------
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Nome della task
+                        Text(
+                          evento.titoloTask,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // Data piccola sotto il titolo
+                        Text(
+                          dataFormattata,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  //----------------------------------------------------------------
+                  // DESTRA: valore (+2, +1, -1) centrato e alto quanto il box
+                  //----------------------------------------------------------------
+                  Container(
+                    width: 50, // larghezza “colonnina” del numero
+                    alignment: Alignment
+                        .center, // centra verticalmente e orizzontalmente
+                    child: Text(
+                      evento.valore > 0
+                          ? '+${evento.valore}'
+                          : '${evento.valore}',
+                      style: TextStyle(
+                        color: colore,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   int _crediti = 10;
   final List<Task> _task = [];
@@ -90,6 +255,11 @@ class _MyHomePageState extends State<MyHomePage> {
         return 0;
     }
   }
+
+  //------------------------------------------------------------------------------
+  // LISTA MOVIMENTI CREDITI
+  //------------------------------------------------------------------------------
+  final List<EventoCrediti> _cronologia = [];
 
   //------------------------------------------------------------------------------
   // ORDINAMENTO INDICI ALTO-> MEDIO -> BASSO
@@ -129,7 +299,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return File('${dir.path}/$_fileName');
   }
 
-  // Salva task + counter + log
+  // Salva task + counter + log +cronologia crediti
   Future<void> _saveData() async {
     final file = await _getDataFile();
 
@@ -137,6 +307,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'counter': _crediti,
       'log': _log,
       'tasks': _task.map((t) => t.toJson()).toList(),
+      'cronologia': _cronologia.map((e) => e.toJson()).toList(),
     };
 
     await file.writeAsString(jsonEncode(data));
@@ -157,6 +328,15 @@ class _MyHomePageState extends State<MyHomePage> {
       final raw = await file.readAsString();
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
 
+      //------------------------------------------------------------------------
+      // CARICAMENTO CRONOLOGIA CREDITI DAL FILE
+      //------------------------------------------------------------------------
+      final cronologiaJson = (decoded['cronologia'] as List?) ?? [];
+
+      final loadedCronologia = cronologiaJson
+          .map((e) => EventoCrediti.fromJson(e as Map<String, dynamic>))
+          .toList();
+
       final loadedCounter = decoded['counter'] as int? ?? 10;
       final loadedLog = (decoded['log'] as List?)?.cast<String>() ?? <String>[];
 
@@ -173,6 +353,9 @@ class _MyHomePageState extends State<MyHomePage> {
         _task
           ..clear()
           ..addAll(loadedTasks);
+        _cronologia
+          ..clear()
+          ..addAll(loadedCronologia);
       });
     } catch (e) {
       // Se il file è corrotto o il json non è valido
@@ -511,7 +694,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
 
                       if (!eraCompletata) {
-                        _crediti++; // crediti tornano solo se non completata
+                        _crediti++;
+                        // crediti tornano solo se non completata
+
+                        _cronologia.add(EventoCrediti(titoloEliminato, 1));
                       }
                     });
                     _saveData();
@@ -577,6 +763,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           if (statoPrima != 'Completato' &&
                               statoDopo == 'Completato') {
                             _crediti += 2;
+
+                            _cronologia.add(
+                              EventoCrediti(titoloController.text, 2),
+                            );
 
                             _addLog('+2 CREDITI TASK COMPLETATA () ');
                           }
@@ -875,6 +1065,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Crea la task
                     setState(() {
                       _crediti--;
+                      _cronologia.add(
+                        EventoCrediti(titoloController.text, -1),
+                      ); //registrazione in cronologia
                       _task.add(
                         Task(
                           titoloController.text,
@@ -889,6 +1082,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       //------------------------------------------------------------------------
                       if (avanzamentoselezionato == 'Completato') {
                         _crediti += 2;
+                        _cronologia.add(
+                          EventoCrediti(titoloController.text, 2),
+                        );
 
                         _addLog(
                           '+2 CREDITI: TASK CREATA GIÀ COMPLETATA ("${titoloController.text}")',
@@ -900,7 +1096,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       //--------------------------------------------------------
 
                       _addLog(
-                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti,',
+                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
                       );
                     });
                     _saveData();
@@ -960,6 +1156,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       await _saveData();
                     },
                   ),
+                ),
+              );
+            },
+          ),
+          // -------------------------------------------------------------------------
+          // PULSANTE CRONOLOGIA CREDITI
+          // -------------------------------------------------------------------------
+          IconButton(
+            icon: const Icon(Icons.account_balance_wallet),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CronologiaSpesePage(cronologia: _cronologia),
                 ),
               );
             },
