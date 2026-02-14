@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert'; // jsonEncode/jsonDecode
 import 'dart:io'; // File
 import 'package:path_provider/path_provider.dart'; // cartella app
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,8 +40,10 @@ class Task {
   String descrizione;
   String avanzamento; // 'Da iniziare' | 'Iniziato' | 'Completato'
   String priorita; // 'Bassa' | 'Media' | 'Alta'
+  DateTime ultimaModifica;
 
-  Task(this.titolo, this.descrizione, this.avanzamento, this.priorita);
+  Task(this.titolo, this.descrizione, this.avanzamento, this.priorita)
+    : ultimaModifica = DateTime.now(); // assegnazione orario attuale
 
   //----------------------------------------------------------------------------
   // SERIALIZZAZIONE JSON
@@ -50,15 +53,22 @@ class Task {
     'descrizione': descrizione,
     'avanzamento': avanzamento,
     'priorita': priorita,
+    'ultimaModifica': ultimaModifica.toIso8601String(),
   };
 
   // creazione task da mappa JSON
-  factory Task.fromJson(Map<String, dynamic> json) => Task(
-    json['titolo'] ?? '',
-    json['descrizione'] ?? '',
-    json['avanzamento'] ?? 'Da iniziare',
-    json['priorita'] ?? 'Bassa',
-  );
+  factory Task.fromJson(Map<String, dynamic> json) =>
+      Task(
+          json['titolo'] ?? '',
+          json['descrizione'] ?? '',
+          json['avanzamento'] ?? 'Da iniziare',
+          json['priorita'] ?? 'Bassa',
+        )
+        ..ultimaModifica =
+            DateTime.tryParse(
+              json['ultimaModifica'] ?? DateTime.now().toIso8601String(),
+            ) ??
+            DateTime.now();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -178,7 +188,10 @@ class _MyHomePageState extends State<MyHomePage> {
   // CREAZIONE STRINGA LOG
   void _addLog(String msg) {
     final now = DateTime.now();
-    final riga = '[${now.toIso8601String()}] ${msg.toUpperCase()}';
+
+    // data/ mese/ anno ore : minuti
+    final dataFormattata = DateFormat('dd/MM/yyyy HH:mm').format(now);
+    final riga = '[$dataFormattata] ${msg.toUpperCase()}';
 
     // Console (debug)
     debugPrint(riga);
@@ -228,6 +241,14 @@ class _MyHomePageState extends State<MyHomePage> {
   //  BOX UI riutilizzabile per una task (
   // ---------------------------------------------------------------------------
   Widget widget_taskBox(int index, Color coloreTask) {
+    //------------------------------------------------------------------------
+    // ORARIO ULTIMA MODIFICA
+    //------------------------------------------------------------------------
+    final ultimaModifica = _task[index].ultimaModifica;
+    final formattamento = DateFormat(
+      'HH:mm - dd/MM/yyyy',
+    ).format(ultimaModifica);
+
     return Container(
       constraints: const BoxConstraints(minHeight: 100),
       margin: const EdgeInsets.only(bottom: 20),
@@ -264,6 +285,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
 
           const SizedBox(height: 6),
+
+          //------------------------------------------------------------------------
+          // DESCRIZIONE (con fade sotto)
+          //------------------------------------------------------------------------
           SizedBox(
             child: Stack(
               children: [
@@ -277,26 +302,43 @@ class _MyHomePageState extends State<MyHomePage> {
                     fontStyle: FontStyle.italic,
                   ),
                   maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
+
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
                   height: 20,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: AlignmentGeometry.topCenter,
-                        end: AlignmentGeometry.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Color.fromARGB(195, 0, 11, 168),
-                        ],
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Color.fromARGB(195, 0, 11, 168),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+
+          //------------------------------------------------------------------------
+          // ORARIO IN BASSO A DESTRA
+          //------------------------------------------------------------------------
+          const SizedBox(height: 8),
+
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(
+              'Ultima modifica: $formattamento',
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
             ),
           ),
         ],
@@ -536,9 +578,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               statoDopo == 'Completato') {
                             _crediti += 2;
 
-                            _addLog(
-                              '+2 CREDITI TASK COMPLETATA (index=$index) ',
-                            );
+                            _addLog('+2 CREDITI TASK COMPLETATA () ');
                           }
 
                           //------------------------------------------------------------------------------------------------
@@ -546,7 +586,37 @@ class _MyHomePageState extends State<MyHomePage> {
                           //------------------------------------------------------------------------------------------------
                           if (statoPrima != statoDopo) {
                             _addLog(
-                              'CAMBIO STATO TASK index=$index: "$statoPrima" -> "$statoDopo"',
+                              'CAMBIO STATO TASK : "$statoPrima" -> "$statoDopo"',
+                            );
+                          }
+                          //------------------------------------------------------------------------------------------------
+                          // LOG MODIFICA DESCRIZIONE
+                          //------------------------------------------------------------------------------------------------
+                          final descrizioneDopo = descrizioneController.text;
+
+                          if (descrizioneOriginale != descrizioneDopo) {
+                            _addLog(
+                              'MODIFICATA DESCRIZIONE task : "${_task[index].titolo}"',
+                            );
+                          }
+
+                          //-------------------------------------------------------------------------------------------------
+                          // LOG MODIFICA TITOLO
+                          //-------------------------------------------------------------------------------------------------
+                          final titoloDopo = titoloController.text;
+                          if (titoloOriginale != titoloDopo) {
+                            _addLog(
+                              'MODIFICATO TITOLO TASK : "$titoloOriginale" -> "$titoloDopo"',
+                            );
+                          }
+
+                          //---------------------------------------------------------------------------------------------------
+                          // LOG MODIFICA PRIORITÀ
+                          //---------------------------------------------------------------------------------------------------
+                          final prioritaDopo = prioritaselezionata;
+                          if (prioritaOriginale != prioritaDopo) {
+                            _addLog(
+                              'MODIFICATA PRIORITÀ  TASK : "$prioritaOriginale" -> "$prioritaDopo"',
                             );
                           }
 
@@ -558,6 +628,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           _task[index].descrizione = descrizioneController.text;
                           _task[index].priorita = prioritaselezionata;
                           _task[index].avanzamento = avanzamentoselezionato;
+
+                          _task[index].ultimaModifica =
+                              DateTime.now(); // aggiornamento all'ultima modifica
                         });
                         _saveData();
 
