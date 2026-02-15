@@ -294,7 +294,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final da = _task[a].ultimaModifica;
       final db = _task[b].ultimaModifica;
 
-      return b.compareTo(a);
+      return db.compareTo(da);
     });
 
     return sorted;
@@ -437,7 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // ---------------------------------------------------------------------------
   //  BOX UI riutilizzabile per una task (
   // ---------------------------------------------------------------------------
-  Widget widget_taskBox(int index, Color coloreTask) {
+  Widget widgetTaskBox(int index, Color coloreTask) {
     //------------------------------------------------------------------------
     // ORARIO ULTIMA MODIFICA
     //------------------------------------------------------------------------
@@ -506,7 +506,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 20,
+                  height: 10,
                   child: IgnorePointer(
                     child: Container(
                       decoration: const BoxDecoration(
@@ -515,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Color.fromARGB(195, 0, 11, 168),
+                            Color.fromARGB(193, 0, 11, 168),
                           ],
                         ),
                       ),
@@ -877,7 +877,7 @@ class _MyHomePageState extends State<MyHomePage> {
     required List<int> indici,
 
     //PARAMETRI COLORE
-    required Color ColoreTitolo,
+    required Color coloreTitolo,
   }) {
     return Container(
       margin: const EdgeInsets.all(12),
@@ -905,7 +905,7 @@ class _MyHomePageState extends State<MyHomePage> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: ColoreTitolo,
+                color: coloreTitolo,
               ),
             ),
           ),
@@ -924,7 +924,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 return InkWell(
                   onTap: () => _openTaskDetail(indexReale),
-                  child: widget_taskBox(indexReale, ColoreTitolo),
+                  child: widgetTaskBox(indexReale, coloreTitolo),
                 );
               },
             ),
@@ -1266,58 +1266,92 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
 
-          Row(
-            children: [
-              // ----------------------------------------------------------------
-              // COLONNA 1: DA INIZIARE
-              // ----------------------------------------------------------------
-              Expanded(
-                flex: 1,
-                child: Stack(
+          // ---------------------------------------------------------------------------
+          // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
+          // ---------------------------------------------------------------------------
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final larghezzaSchermo = constraints.maxWidth;
+
+              // larghezza minima per una colonna
+              const larghezzaMinColonne = 400.0;
+
+              // larghezza ideale: 1/3 dello schermo
+              final larghezzaIdeale = larghezzaSchermo / 3;
+
+              //selezione fra minima e ideale
+              final columnWidth = larghezzaIdeale < larghezzaMinColonne
+                  ? larghezzaMinColonne
+                  : larghezzaIdeale;
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Lista 'DA INIZIARE'
-                    Positioned.fill(
-                      top: 160,
-                      child: buildColonnaKanban(
-                        titolo: 'DA INIZIARE',
-                        indici: daIniziareOrdinato,
-                        ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
+                    //----------------------------------------------------------
+                    //COLONNA 1: DA INIZIARE
+                    //----------------------------------------------------------
+                    SizedBox(
+                      width: columnWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 160),
+                        child: buildColonnaKanban(
+                          titolo: 'DA INIZIARE',
+                          indici: daIniziareOrdinato,
+                          coloreTitolo: const Color.fromARGB(
+                            255,
+                            206,
+                            206,
+                            206,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    //----------------------------------------------------------
+                    //COLONNA 2: INIZIATO
+                    //----------------------------------------------------------
+                    SizedBox(
+                      width: columnWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 160),
+                        child: buildColonnaKanban(
+                          titolo: 'INIZIATO',
+                          indici: iniziatoOrdinato,
+                          coloreTitolo: const Color.fromARGB(
+                            255,
+                            206,
+                            206,
+                            206,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    //----------------------------------------------------------
+                    //COLONNA 3: COMPLETATO
+                    //----------------------------------------------------------
+                    SizedBox(
+                      width: columnWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 160),
+                        child: buildColonnaKanban(
+                          titolo: 'COMPLETATO',
+                          indici: completatoOrdinato,
+                          coloreTitolo: const Color.fromARGB(
+                            255,
+                            206,
+                            206,
+                            206,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-
-              // ----------------------------------------------------------------
-              // COLONNA 2: INIZIATO
-              // ----------------------------------------------------------------
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 160),
-                  child: buildColonnaKanban(
-                    titolo: 'INIZIATO',
-                    indici: iniziatoOrdinato,
-                    ColoreTitolo: Color.fromARGB(255, 206, 206, 206),
-                  ),
-                ),
-              ),
-
-              // ----------------------------------------------------------------
-              // COLONNA 3: COMPLETATO
-              // ----------------------------------------------------------------
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 160),
-                  child: buildColonnaKanban(
-                    titolo: 'COMPLETATO',
-                    indici: completatoOrdinato,
-                    ColoreTitolo: const Color.fromARGB(255, 206, 206, 206),
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),
