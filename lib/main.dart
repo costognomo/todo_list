@@ -41,9 +41,18 @@ class Task {
   String avanzamento; // 'Da iniziare' | 'Iniziato' | 'Completato'
   String priorita; // 'Bassa' | 'Media' | 'Alta'
   DateTime ultimaModifica;
+  final int id;
 
-  Task(this.titolo, this.descrizione, this.avanzamento, this.priorita)
-    : ultimaModifica = DateTime.now(); // assegnazione orario attuale
+  Task(
+    this.titolo,
+    this.descrizione,
+    this.avanzamento,
+    this.priorita, {
+    int? id,
+
+    // assegnazione orario attuale
+  }) : ultimaModifica = DateTime.now(),
+       id = id ?? DateTime.now().microsecondsSinceEpoch;
 
   //----------------------------------------------------------------------------
   // SERIALIZZAZIONE JSON
@@ -54,21 +63,25 @@ class Task {
     'avanzamento': avanzamento,
     'priorita': priorita,
     'ultimaModifica': ultimaModifica.toIso8601String(),
+    'id': id,
   };
 
   // creazione task da mappa JSON
-  factory Task.fromJson(Map<String, dynamic> json) =>
-      Task(
-          json['titolo'] ?? '',
-          json['descrizione'] ?? '',
-          json['avanzamento'] ?? 'Da iniziare',
-          json['priorita'] ?? 'Bassa',
-        )
-        ..ultimaModifica =
-            DateTime.tryParse(
-              json['ultimaModifica'] ?? DateTime.now().toIso8601String(),
-            ) ??
-            DateTime.now();
+  factory Task.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'];
+    return Task(
+        json['titolo'] ?? '',
+        json['descrizione'] ?? '',
+        json['avanzamento'] ?? 'Da iniziare',
+        json['priorita'] ?? 'Bassa',
+        id: rawId != null ? (rawId as num).toInt() : null,
+      )
+      ..ultimaModifica =
+          DateTime.tryParse(
+            json['ultimaModifica'] ?? DateTime.now().toIso8601String(),
+          ) ??
+          DateTime.now();
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -262,7 +275,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<EventoCrediti> _cronologia = [];
 
   //------------------------------------------------------------------------------
-  // ORDINAMENTO INDICI ALTO-> MEDIO -> BASSO
+  // ORDINAMENTO INDICI ALTO-> MEDIO -> BASSO |per ultima modifica
   //------------------------------------------------------------------------------
   List<int> _ordinaIndiciPerPriorita(List<int> indici) {
     // Creazione copia per non modificare la lista originale passata
@@ -277,8 +290,9 @@ class _MyHomePageState extends State<MyHomePage> {
       final cmpPriorita = pb.compareTo(pa);
       if (cmpPriorita != 0) return cmpPriorita;
 
-      // Se priorità uguale ordinamento per più recente
-      if (cmpPriorita != 0) return cmpPriorita;
+      // Se priorità uguale ordinamento per ultima modifica
+      final da = _task[a].ultimaModifica;
+      final db = _task[b].ultimaModifica;
 
       return b.compareTo(a);
     });
@@ -518,10 +532,23 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(height: 8),
 
           Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              'Ultima modifica: $formattamento',
-              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            alignment: Alignment.bottomLeft,
+            child: Row(
+              mainAxisSize:
+                  MainAxisSize.min, // restringe la row al minimo necessario
+              children: [
+                // ID in piccolo, a sinistra
+                Text(
+                  'ID: ${_task[index].id}  ',
+                  style: const TextStyle(fontSize: 11, color: Colors.white38),
+                ),
+
+                // ultima modifica a destra
+                Text(
+                  'Ultima modifica: $formattamento',
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ],
             ),
           ),
         ],
@@ -678,18 +705,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextButton(
                   onPressed: () {
                     setState(() {
+                      final taskEliminata = _task[index];
                       // Se era completata -> NON incrementare crediti
                       final bool eraCompletata =
-                          (_task[index].avanzamento == 'Completato');
-                      final titoloEliminato = _task[index].titolo;
+                          (taskEliminata.avanzamento == 'Completato');
 
                       _task.removeAt(index);
 
                       if (!eraCompletata) {
-                        _addLog('ELIMINATA : "$titoloEliminato" ');
+                        _addLog(
+                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}" ',
+                        );
                       } else {
                         _addLog(
-                          'ELIMINATA task: "$titoloEliminato", ERA COMPLETATA',
+                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}", ERA COMPLETATA',
                         );
                       }
 
@@ -697,7 +726,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         _crediti++;
                         // crediti tornano solo se non completata
 
-                        _cronologia.add(EventoCrediti(titoloEliminato, 1));
+                        _cronologia.add(EventoCrediti(taskEliminata.titolo, 1));
                       }
                     });
                     _saveData();
@@ -768,7 +797,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               EventoCrediti(titoloController.text, 2),
                             );
 
-                            _addLog('+2 CREDITI TASK COMPLETATA () ');
+                            _addLog(
+                              '+2 CREDITI TASK COMPLETATA (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id}) ',
+                            );
                           }
 
                           //------------------------------------------------------------------------------------------------
@@ -776,7 +807,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           //------------------------------------------------------------------------------------------------
                           if (statoPrima != statoDopo) {
                             _addLog(
-                              'CAMBIO STATO TASK : "$statoPrima" -> "$statoDopo"',
+                              'CAMBIO STATO TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id})  : "$statoPrima" -> "$statoDopo"',
                             );
                           }
                           //------------------------------------------------------------------------------------------------
@@ -786,7 +817,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           if (descrizioneOriginale != descrizioneDopo) {
                             _addLog(
-                              'MODIFICATA DESCRIZIONE task : "${_task[index].titolo}"',
+                              'MODIFICATA DESCRIZIONE TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ) : "$descrizioneOriginale" -> "$descrizioneDopo"',
                             );
                           }
 
@@ -796,7 +827,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           final titoloDopo = titoloController.text;
                           if (titoloOriginale != titoloDopo) {
                             _addLog(
-                              'MODIFICATO TITOLO TASK : "$titoloOriginale" -> "$titoloDopo"',
+                              'MODIFICATO TITOLO TASK (ID: ${_task[index].id}) : "$titoloOriginale" -> "$titoloDopo"',
                             );
                           }
 
@@ -806,7 +837,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           final prioritaDopo = prioritaselezionata;
                           if (prioritaOriginale != prioritaDopo) {
                             _addLog(
-                              'MODIFICATA PRIORITÀ  TASK : "$prioritaOriginale" -> "$prioritaDopo"',
+                              'MODIFICATA PRIORITÀ  TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ): "$prioritaOriginale" -> "$prioritaDopo"',
                             );
                           }
 
@@ -1065,29 +1096,25 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Crea la task
                     setState(() {
                       _crediti--;
-                      _cronologia.add(
-                        EventoCrediti(titoloController.text, -1),
-                      ); //registrazione in cronologia
-                      _task.add(
-                        Task(
-                          titoloController.text,
-                          descrizioneController.text,
-                          avanzamentoselezionato,
-                          prioritaselezionata,
-                        ),
+                      final nuovaTask = Task(
+                        titoloController.text,
+                        descrizioneController.text,
+                        avanzamentoselezionato,
+                        prioritaselezionata,
                       );
+                      _cronologia.add(EventoCrediti(nuovaTask.titolo, -1));
+
+                      _task.add(nuovaTask);
 
                       //------------------------------------------------------------------------
                       // SE LA TASK NASCE GIÀ COMPLETATA ASSEGNARE COMUNQE I 2 CREDITI
                       //------------------------------------------------------------------------
                       if (avanzamentoselezionato == 'Completato') {
                         _crediti += 2;
-                        _cronologia.add(
-                          EventoCrediti(titoloController.text, 2),
-                        );
+                        _cronologia.add(EventoCrediti(nuovaTask.titolo, 2));
 
                         _addLog(
-                          '+2 CREDITI: TASK CREATA GIÀ COMPLETATA ("${titoloController.text}")',
+                          '+2 CREDITI: TASK CREATA GIÀ COMPLETATA (ID: ${nuovaTask.id}) ("${nuovaTask.titolo}")',
                         );
                       }
 
@@ -1096,7 +1123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       //--------------------------------------------------------
 
                       _addLog(
-                        'CREATA task: "${titoloController.text}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
+                        'CREATA task: (ID: ${nuovaTask.id}): "TITOLO: ${nuovaTask.titolo}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
                       );
                     });
                     _saveData();
