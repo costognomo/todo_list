@@ -189,43 +189,49 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "STORICO CREDITI",
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
       backgroundColor: Colors.black,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.black,
+            pinned: true,
+            title: const Text(
+              'STORICO CREDITI',
+              style: TextStyle(color: Colors.white),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
 
-      //--------------------------------------------------------------------------
-      // BODY: barra ricerca + lista
-      //--------------------------------------------------------------------------
-      body: Column(
-        children: [
+          //--------------------------------------------------------------------------
+          // BODY: barra ricerca + lista
+          //--------------------------------------------------------------------------
+
           //--------------------------------------------------------------------
           // BARRA DI RICERCA
           //--------------------------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SearchBarWidget(
-              controller: _searchController,
-              hintText: 'Cerca nello storico crediti...',
-              onChanged: (_) {
-                setState(() {});
-              },
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SearchBarWidget(
+                controller: _searchController,
+                hintText: 'Cerca nello storico crediti...',
+                onChanged: (_) => setState(() {}),
+              ),
             ),
           ),
-
-          //----------------------------------------------------------------------
-          // LISTA SCORRIBILE MOVIMENTI
-          //----------------------------------------------------------------------
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _filteredCronologia.length,
-              itemBuilder: (context, index) {
+          if (_filteredCronologia.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(
+                  'Nessun risultato',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
                 final evento = _filteredCronologia[index];
 
                 //------------------------------------------------------------------
@@ -324,9 +330,8 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                     ),
                   ),
                 );
-              },
+              }),
             ),
-          ),
         ],
       ),
     );
@@ -1312,7 +1317,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Text(
               widget.title,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 33,
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
                 shadows: [
@@ -1323,11 +1328,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ],
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
-        leadingWidth: 160,
+        leadingWidth: 180,
 
         // Barra di ricerca centrale (riuso widget)
         title: Center(
@@ -1408,160 +1412,176 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned.fill(
             child: Image.asset('assets/SfondoToDoList.png', fit: BoxFit.cover),
           ),
-          Column(
-            children: [
-              const SizedBox(height: 20),
 
-              //Crediti in alto
-              Text(
-                'I tuoi crediti sono: $_crediti',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 50,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(2, 2),
-                      blurRadius: 3,
-                      color: Colors.black,
-                    ),
-                  ],
-                ),
-              ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
-              // --------------------------------------------------
-              //  BOTTONE LARGO TUTTO LO SCHERMO
-              // --------------------------------------------------
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromARGB(
-                          255,
-                          255,
-                          255,
-                          255,
-                        ), // colore ombra
-                        blurRadius: 20, // quanto è morbida
-                        spreadRadius: 2, // quanto si espande
+                      // Crediti responsive (non va in overflow)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'I tuoi crediti sono: $_crediti',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 50,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(2, 2),
+                                  blurRadius: 3,
+                                  color: Colors.black,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+
+                      const SizedBox(height: 20),
+
+                      // --------------------------------------------------
+                      //  BOTTONE LARGO TUTTO LO SCHERMO
+                      // --------------------------------------------------
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color.fromARGB(255, 255, 255, 255),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 60,
+                            child: ElevatedButton(
+                              onPressed: _creditnumber,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  55,
+                                  0,
+                                  255,
+                                ),
+                                foregroundColor: const Color.fromARGB(
+                                  255,
+                                  253,
+                                  243,
+                                  243,
+                                ),
+                              ),
+                              child: const Text(
+                                'AGGIUNGI NUOVA TASK',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ---------------------------------------------------------------------------
+                      // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
+                      // ---------------------------------------------------------------------------
+                      SizedBox(
+                        height: (constraints.maxHeight * 0.70).clamp(
+                          250.0,
+                          900.0,
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, innerConstraints) {
+                            final larghezzaSchermo = innerConstraints.maxWidth;
+                            const larghezzaMinColonne = 400.0;
+                            final larghezzaIdeale = larghezzaSchermo / 3;
+                            final columnWidth =
+                                larghezzaIdeale < larghezzaMinColonne
+                                ? larghezzaMinColonne
+                                : larghezzaIdeale;
+
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  //----------------------------------------------------------
+                                  //COLONNA 1: DA INIZIARE
+                                  //----------------------------------------------------------
+                                  SizedBox(
+                                    width: columnWidth,
+                                    child: buildColonnaKanban(
+                                      titolo: 'DA INIZIARE',
+                                      indici: daIniziareOrdinato,
+                                      coloreTitolo: const Color.fromARGB(
+                                        255,
+                                        206,
+                                        206,
+                                        206,
+                                      ),
+                                    ),
+                                  ),
+
+                                  //----------------------------------------------------------
+                                  //COLONNA 2: INIZIATO
+                                  //----------------------------------------------------------
+                                  SizedBox(
+                                    width: columnWidth,
+                                    child: buildColonnaKanban(
+                                      titolo: 'INIZIATO',
+                                      indici: iniziatoOrdinato,
+                                      coloreTitolo: const Color.fromARGB(
+                                        255,
+                                        206,
+                                        206,
+                                        206,
+                                      ),
+                                    ),
+                                  ),
+
+                                  //----------------------------------------------------------
+                                  //COLONNA 3: COMPLETATO
+                                  //----------------------------------------------------------
+                                  SizedBox(
+                                    width: columnWidth,
+                                    child: buildColonnaKanban(
+                                      titolo: 'COMPLETATO',
+                                      indici: completatoOrdinato,
+                                      coloreTitolo: const Color.fromARGB(
+                                        255,
+                                        206,
+                                        206,
+                                        206,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
                     ],
                   ),
-
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: _creditnumber,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 55, 0, 255),
-                        foregroundColor: const Color.fromARGB(
-                          255,
-                          253,
-                          243,
-                          243,
-                        ),
-                      ),
-                      child: const Text(
-                        'AGGIUNGI NUOVA TASK',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ---------------------------------------------------------------------------
-              // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
-              // ---------------------------------------------------------------------------
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final larghezzaSchermo = constraints.maxWidth;
-
-                    // larghezza minima per una colonna
-                    const larghezzaMinColonne = 400.0;
-
-                    // larghezza ideale: 1/3 dello schermo
-                    final larghezzaIdeale = larghezzaSchermo / 3;
-
-                    //selezione fra minima e ideale
-                    final columnWidth = larghezzaIdeale < larghezzaMinColonne
-                        ? larghezzaMinColonne
-                        : larghezzaIdeale;
-
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          //----------------------------------------------------------
-                          //COLONNA 1: DA INIZIARE
-                          //----------------------------------------------------------
-                          SizedBox(
-                            width: columnWidth,
-                            child: buildColonnaKanban(
-                              titolo: 'DA INIZIARE',
-                              indici: daIniziareOrdinato,
-                              coloreTitolo: const Color.fromARGB(
-                                255,
-                                206,
-                                206,
-                                206,
-                              ),
-                            ),
-                          ),
-
-                          //----------------------------------------------------------
-                          //COLONNA 2: INIZIATO
-                          //----------------------------------------------------------
-                          SizedBox(
-                            width: columnWidth,
-                            child: buildColonnaKanban(
-                              titolo: 'INIZIATO',
-                              indici: iniziatoOrdinato,
-                              coloreTitolo: const Color.fromARGB(
-                                255,
-                                206,
-                                206,
-                                206,
-                              ),
-                            ),
-                          ),
-
-                          //----------------------------------------------------------
-                          //COLONNA 3: COMPLETATO
-                          //----------------------------------------------------------
-                          SizedBox(
-                            width: columnWidth,
-                            child: buildColonnaKanban(
-                              titolo: 'COMPLETATO',
-                              indici: completatoOrdinato,
-                              coloreTitolo: const Color.fromARGB(
-                                255,
-                                206,
-                                206,
-                                206,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),
@@ -1637,86 +1657,74 @@ class _LogPageState extends State<LogPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      // AppBar della pagina log
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Log', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.black,
+            pinned: true,
+            title: const Text('Log', style: TextStyle(color: Colors.white)),
+            iconTheme: const IconThemeData(color: Colors.white),
 
-        //----------------------------------------------------------------------
-        // CREAZIONE PULSANTE ELIMINAZIONE DESTRA
-        //----------------------------------------------------------------------
-        actions: [
-          IconButton(
-            tooltip: 'reset log',
-            icon: const Icon(Icons.delete),
-            onPressed: _resetLog,
-            padding: const EdgeInsets.only(right: 12),
+            //----------------------------------------------------------------------
+            // CREAZIONE PULSANTE ELIMINAZIONE DESTRA
+            //----------------------------------------------------------------------
+            actions: [
+              IconButton(
+                tooltip: 'reset log',
+                icon: const Icon(Icons.delete),
+                onPressed: _resetLog,
+              ),
+            ],
           ),
-        ],
-      ),
 
-      // Body: colonna con barra di ricerca + lista
-      body: Column(
-        children: [
           //--------------------------------------------------------------------
-          // BARRA DI RICERCA
+          // BARRA DI RICERCA SCORLLABILE
           //--------------------------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SearchBarWidget(
-              controller: _searchController,
-              hintText: 'Scrivi una parola o una parte della frase...',
-              onChanged: (_) {
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SearchBarWidget(
+                controller: _searchController,
+                hintText: 'Scrivi una parola o una parte della frase...',
                 // aggiorno la UI per mostrare/nascondere la X
-                setState(() {});
-              },
+                onChanged: (_) => setState(() {}),
+              ),
             ),
           ),
 
           //------------------------------------------------------------------------
           // RISULTATI (LISTA LOG FILTRATA)
           //------------------------------------------------------------------------
-          Expanded(
-            // Se non ci sono risultati (o log vuoto) appare un messaggio
-            child: _filteredLog.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Nessun risultato',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _filteredLog.length,
-                    itemBuilder: (context, index) {
-                      //--------------------------------------------------------
-                      // BOX PERSONALIZZATO PER IL LOG
-                      //--------------------------------------------------------
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 0, 40, 160),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-
-                          child: Text(
-                            _filteredLog[index],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+          // Se non ci sono risultati (o log vuoto) appare un messaggio
+          if (_filteredLog.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(
+                  'Nessun risultato',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 0, 40, 160),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-          ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      _filteredLog[index],
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                );
+              }, childCount: _filteredLog.length),
+            ),
         ],
       ),
     );
@@ -1811,6 +1819,11 @@ class SearchBarWidget extends StatelessWidget {
         border: const OutlineInputBorder(),
         filled: true,
         fillColor: const Color.fromARGB(80, 0, 0, 0),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
       ),
     );
   }
