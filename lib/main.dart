@@ -120,16 +120,74 @@ class EventoCrediti {
 //------------------------------------------------------------------------------
 // PAGINA CRONOLOGIA CREDITI
 //------------------------------------------------------------------------------
-class CronologiaSpesePage extends StatelessWidget {
+class CronologiaSpesePage extends StatefulWidget {
   final List<EventoCrediti> cronologia;
 
   const CronologiaSpesePage({super.key, required this.cronologia});
 
   @override
-  Widget build(BuildContext context) {
-    // invertimento per avere i più recenti sopra
-    final lista = cronologia.reversed.toList();
+  State<CronologiaSpesePage> createState() => _CronologiaSpesePageState();
+}
 
+class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
+  //--------------------------------------------------------------------------
+  // RICERCA STORICO CREDITI
+  //--------------------------------------------------------------------------
+  final TextEditingController _searchController = TextEditingController();
+
+  // lista filtrata (mostrata a schermo)
+  late List<EventoCrediti> _filteredCronologia;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // invertimento per avere i più recenti sopra
+    _filteredCronologia = widget.cronologia.reversed.toList();
+
+    // ogni volta che cambia il testo ricalcolo la lista
+    _searchController.addListener(_applyFilter);
+  }
+
+  //--------------------------------------------------------------------------
+  // FILTRO RICERCA (titoloTask, valore, data formattata)
+  //--------------------------------------------------------------------------
+  void _applyFilter() {
+    final query = _searchController.text.trim().toLowerCase();
+
+    // base: tutto lo storico
+    List<EventoCrediti> baseList = widget.cronologia;
+
+    // Se c'è una ricerca, filtriamo
+    if (query.isNotEmpty) {
+      baseList = widget.cronologia.where((evento) {
+        final titolo = evento.titoloTask.toLowerCase();
+        final valore = evento.valore.toString(); // "+2" non serve: cerchi "2"
+        final dataFormattata = DateFormat(
+          'dd/MM/yyyy HH:mm',
+        ).format(evento.data).toLowerCase();
+
+        return titolo.contains(query) ||
+            valore.contains(query) ||
+            dataFormattata.contains(query);
+      }).toList();
+    }
+
+    // inverte l'ordine (ultimi movimenti → sopra)
+    setState(() {
+      _filteredCronologia = baseList.reversed.toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applyFilter);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -141,109 +199,135 @@ class CronologiaSpesePage extends StatelessWidget {
       ),
       backgroundColor: Colors.black,
 
-      //----------------------------------------------------------------------
-      // LISTA SCORRIBILE MOVIMENTI
-      //----------------------------------------------------------------------
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: lista.length,
-        itemBuilder: (context, index) {
-          final evento = lista[index];
-
-          //------------------------------------------------------------------
-          // SCELTA COLORE IN BASE AL TIPO DI MOVIMENTO
-          //------------------------------------------------------------------
-          Color colore;
-          if (evento.valore == -1) {
-            colore = Colors.red; // creazione task
-          } else if (evento.valore == 1) {
-            colore = Colors.yellow; // eliminazione
-          } else {
-            colore = Colors.green; // completamento
-          }
-
-          //------------------------------------------------------------------
-          // FORMATTAZIONE DATA
-          //------------------------------------------------------------------
-          final dataFormattata = DateFormat(
-            'dd/MM/yyyy HH:mm',
-          ).format(evento.data);
-
-          //------------------------------------------------------------------
-          // BOX GRAFICO DEL MOVIMENTO
-          //------------------------------------------------------------------
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 0, 40, 160),
-              borderRadius: BorderRadius.circular(12),
+      //--------------------------------------------------------------------------
+      // BODY: barra ricerca + lista
+      //--------------------------------------------------------------------------
+      body: Column(
+        children: [
+          //--------------------------------------------------------------------
+          // BARRA DI RICERCA
+          //--------------------------------------------------------------------
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SearchBarWidget(
+              controller: _searchController,
+              hintText: 'Cerca nello storico crediti...',
+              onChanged: (_) {
+                setState(() {});
+              },
             ),
-            //----------------------------------------------------------------------
-            // CONTENUTO BOX: sinistra (titolo+data) | destra (numero centrato)
-            //----------------------------------------------------------------------
-            child: IntrinsicHeight(
-              child: Row(
+          ),
+
+          //----------------------------------------------------------------------
+          // LISTA SCORRIBILE MOVIMENTI
+          //----------------------------------------------------------------------
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _filteredCronologia.length,
+              itemBuilder: (context, index) {
+                final evento = _filteredCronologia[index];
+
                 //------------------------------------------------------------------
-                // stretch = il contenitore del numero si estende in altezza
+                // SCELTA COLORE IN BASE AL TIPO DI MOVIMENTO
                 //------------------------------------------------------------------
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  //----------------------------------------------------------------
-                  // SINISTRA: titolo + data
-                  //----------------------------------------------------------------
-                  Expanded(
-                    child: Column(
+                Color colore;
+                if (evento.valore == -1) {
+                  colore = Colors.red; // creazione task
+                } else if (evento.valore == 1) {
+                  colore = Colors.yellow; // eliminazione
+                } else {
+                  colore = Colors.green; // completamento
+                }
+
+                //------------------------------------------------------------------
+                // FORMATTAZIONE DATA
+                //------------------------------------------------------------------
+                final dataFormattata = DateFormat(
+                  'dd/MM/yyyy HH:mm',
+                ).format(evento.data);
+
+                //------------------------------------------------------------------
+                // BOX GRAFICO DEL MOVIMENTO
+                //------------------------------------------------------------------
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 0, 40, 160),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  //----------------------------------------------------------------------
+                  // CONTENUTO BOX: sinistra (titolo+data) | destra (numero centrato)
+                  //----------------------------------------------------------------------
+                  child: IntrinsicHeight(
+                    child: Row(
+                      //------------------------------------------------------------------
+                      // stretch = il contenitore del numero si estende in altezza
+                      //------------------------------------------------------------------
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Nome della task
-                        Text(
-                          evento.titoloTask,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
+                        //----------------------------------------------------------------
+                        // SINISTRA: titolo + data
+                        //----------------------------------------------------------------
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Nome della task
+                              Text(
+                                evento.titoloTask,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              // Data piccola sotto il titolo
+                              Text(
+                                dataFormattata,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
-                        const SizedBox(height: 4),
-
-                        // Data piccola sotto il titolo
-                        Text(
-                          dataFormattata,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
+                        //----------------------------------------------------------------
+                        // DESTRA: valore (+2, +1, -1) centrato e alto quanto il box
+                        //----------------------------------------------------------------
+                        Container(
+                          width: 50, // larghezza “colonnina” del numero
+                          alignment: Alignment
+                              .center, // centra verticalmente e orizzontalmente
+                          child: Text(
+                            evento.valore > 0
+                                ? '+${evento.valore}'
+                                : '${evento.valore}',
+                            style: TextStyle(
+                              color: colore,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-
-                  //----------------------------------------------------------------
-                  // DESTRA: valore (+2, +1, -1) centrato e alto quanto il box
-                  //----------------------------------------------------------------
-                  Container(
-                    width: 50, // larghezza “colonnina” del numero
-                    alignment: Alignment
-                        .center, // centra verticalmente e orizzontalmente
-                    child: Text(
-                      evento.valore > 0
-                          ? '+${evento.valore}'
-                          : '${evento.valore}',
-                      style: TextStyle(
-                        color: colore,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -331,6 +415,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _loadData(); // ricarica tutto appena l’app parte
+  }
+
+  @override
+  void dispose() {
+    // rilascio controller ricerca home
+    _ricercaTaskController.dispose();
+    super.dispose();
   }
 
   // Carica task + counter + log
@@ -423,14 +514,73 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  //----------------------------------------------------------------------------
+  // RICERCA: controller+ testo querry
+  //----------------------------------------------------------------------------
+  final TextEditingController _ricercaTaskController = TextEditingController();
+
+  // Ricalcolo liste al cambio
+  String _taskQuery = '';
+
   // ---------------------------------------------------------------------------
   //  FILTRO: ritorna gli indici reali della lista _task per uno stato
+  //  + ricerca su titolo/descrizione o ID
   // ---------------------------------------------------------------------------
   List<int> _filtrostatoavanzamento(String stato) {
     final result = <int>[];
-    for (int i = 0; i < _task.length; i++) {
-      if (_task[i].avanzamento == stato) result.add(i);
+
+    // pulizia query (spazi)
+    final raw = _taskQuery.trim();
+    final qLower = raw.toLowerCase();
+
+    // 1) Caso: query vuota -> tutto
+    if (raw.isEmpty) {
+      for (int i = 0; i < _task.length; i++) {
+        if (_task[i].avanzamento == stato) result.add(i);
+      }
+      return result;
     }
+
+    // 2) Determina se si sta cercando per ID
+    String? idCercato;
+
+    // Se l'utente scrive solo numeri -> interpretalo come ID (equivalente a "id:123")
+    if (RegExp(r'^\d+$').hasMatch(raw)) {
+      idCercato = raw;
+    }
+
+    // Se l'utente scrive "id" o "id:" o "id:  " -> NON SI ATTIVA ID
+    if (qLower == 'id' || qLower == 'id:' || qLower.startsWith('id:')) {
+      final after = qLower.startsWith('id:') ? qLower.substring(3).trim() : '';
+      if (after.isEmpty) {
+        for (int i = 0; i < _task.length; i++) {
+          if (_task[i].avanzamento == stato) result.add(i);
+        }
+        return result;
+      } else {
+        idCercato = after;
+      }
+    }
+
+    // 3) Filtra
+    for (int i = 0; i < _task.length; i++) {
+      if (_task[i].avanzamento != stato) continue;
+
+      // Ricerca per ID
+      if (idCercato != null) {
+        final idString = _task[i].id.toString();
+        if (idString.contains(idCercato)) result.add(i);
+        continue;
+      }
+
+      // Ricerca testuale (titolo/descrizione)
+      final titolo = _task[i].titolo.toLowerCase();
+      final descr = _task[i].descrizione.toLowerCase();
+      if (titolo.contains(qLower) || descr.contains(qLower)) {
+        result.add(i);
+      }
+    }
+
     return result;
   }
 
@@ -937,8 +1087,8 @@ class _MyHomePageState extends State<MyHomePage> {
   // ---------------------------------------------------------------------------
   //  CREAZIONE TASK
   //  - Se non selezioni titolo/priorità/avanzamento -> alert
-  //  Nota: nessun setState esterno al dialog
   // ---------------------------------------------------------------------------
+
   void _creditnumber() {
     if (_crediti < 1) {
       _schermataerrore(
@@ -1148,6 +1298,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final daIniziare = _filtrostatoavanzamento('Da iniziare');
     final iniziato = _filtrostatoavanzamento('Iniziato');
     final completato = _filtrostatoavanzamento('Completato');
+
     final daIniziareOrdinato = _ordinaIndiciPerPriorita(daIniziare);
     final iniziatoOrdinato = _ordinaIndiciPerPriorita(iniziato);
     final completatoOrdinato = _ordinaIndiciPerPriorita(completato);
@@ -1155,15 +1306,42 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 4, 0, 255),
-        title: Text(
-          widget.title,
-          style: const TextStyle(
-            fontSize: 30,
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            shadows: [
-              Shadow(offset: Offset(2, 2), blurRadius: 3, color: Colors.black),
-            ],
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Text(
+              widget.title,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                shadows: [
+                  Shadow(
+                    offset: Offset(2, 2),
+                    blurRadius: 3,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        leadingWidth: 160,
+
+        // Barra di ricerca centrale (riuso widget)
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: SearchBarWidget(
+              controller: _ricercaTaskController,
+              hintText: 'Cerca task (titolo, descrizione o ID / id:123)...',
+              onChanged: (value) {
+                setState(() {
+                  _taskQuery = value;
+                });
+              },
+            ),
           ),
         ),
 
@@ -1172,7 +1350,18 @@ class _MyHomePageState extends State<MyHomePage> {
         //----------------------------------------------------------------------
         actions: [
           IconButton(
-            icon: const Icon(Icons.article),
+            tooltip: 'Log',
+            icon: const Icon(
+              Icons.article,
+              color: Colors.white,
+              shadows: [
+                Shadow(
+                  offset: Offset(2, 2),
+                  blurRadius: 3,
+                  color: Colors.black,
+                ),
+              ],
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -1191,7 +1380,18 @@ class _MyHomePageState extends State<MyHomePage> {
           // PULSANTE CRONOLOGIA CREDITI
           // -------------------------------------------------------------------------
           IconButton(
-            icon: const Icon(Icons.account_balance_wallet),
+            tooltip: 'Storico Crediti',
+            icon: const Icon(
+              Icons.account_balance_wallet,
+              color: Colors.white,
+              shadows: [
+                Shadow(
+                  offset: Offset(2, 2),
+                  blurRadius: 3,
+                  color: Colors.black,
+                ),
+              ],
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -1208,160 +1408,170 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned.fill(
             child: Image.asset('assets/SfondoToDoList.png', fit: BoxFit.cover),
           ),
+          Column(
+            children: [
+              const SizedBox(height: 20),
 
-          //Crediti in alto
-          Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Text(
-              'I tuoi crediti sono: $_crediti',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 50,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    offset: Offset(2, 2),
-                    blurRadius: 3,
-                    color: Colors.black,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // --------------------------------------------------
-          //  BOTTONE LARGO TUTTO LO SCHERMO
-          // --------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 100, 12, 0),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromARGB(255, 255, 255, 255), // colore ombra
-                    blurRadius: 20, // quanto è morbida
-                    spreadRadius: 2, // quanto si espande
-                  ),
-                ],
-              ),
-
-              child: SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: _creditnumber,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 55, 0, 255),
-                    foregroundColor: const Color.fromARGB(255, 253, 243, 243),
-                  ),
-                  child: const Text(
-                    'AGGIUNGI NUOVA TASK',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ---------------------------------------------------------------------------
-          // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
-          // ---------------------------------------------------------------------------
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final larghezzaSchermo = constraints.maxWidth;
-
-              // larghezza minima per una colonna
-              const larghezzaMinColonne = 400.0;
-
-              // larghezza ideale: 1/3 dello schermo
-              final larghezzaIdeale = larghezzaSchermo / 3;
-
-              //selezione fra minima e ideale
-              final columnWidth = larghezzaIdeale < larghezzaMinColonne
-                  ? larghezzaMinColonne
-                  : larghezzaIdeale;
-
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    //----------------------------------------------------------
-                    //COLONNA 1: DA INIZIARE
-                    //----------------------------------------------------------
-                    SizedBox(
-                      width: columnWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 160),
-                        child: buildColonnaKanban(
-                          titolo: 'DA INIZIARE',
-                          indici: daIniziareOrdinato,
-                          coloreTitolo: const Color.fromARGB(
-                            255,
-                            206,
-                            206,
-                            206,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    //----------------------------------------------------------
-                    //COLONNA 2: INIZIATO
-                    //----------------------------------------------------------
-                    SizedBox(
-                      width: columnWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 160),
-                        child: buildColonnaKanban(
-                          titolo: 'INIZIATO',
-                          indici: iniziatoOrdinato,
-                          coloreTitolo: const Color.fromARGB(
-                            255,
-                            206,
-                            206,
-                            206,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    //----------------------------------------------------------
-                    //COLONNA 3: COMPLETATO
-                    //----------------------------------------------------------
-                    SizedBox(
-                      width: columnWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 160),
-                        child: buildColonnaKanban(
-                          titolo: 'COMPLETATO',
-                          indici: completatoOrdinato,
-                          coloreTitolo: const Color.fromARGB(
-                            255,
-                            206,
-                            206,
-                            206,
-                          ),
-                        ),
-                      ),
+              //Crediti in alto
+              Text(
+                'I tuoi crediti sono: $_crediti',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 50,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(2, 2),
+                      blurRadius: 3,
+                      color: Colors.black,
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+
+              const SizedBox(height: 20),
+              // --------------------------------------------------
+              //  BOTTONE LARGO TUTTO LO SCHERMO
+              // --------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromARGB(
+                          255,
+                          255,
+                          255,
+                          255,
+                        ), // colore ombra
+                        blurRadius: 20, // quanto è morbida
+                        spreadRadius: 2, // quanto si espande
+                      ),
+                    ],
+                  ),
+
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _creditnumber,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 55, 0, 255),
+                        foregroundColor: const Color.fromARGB(
+                          255,
+                          253,
+                          243,
+                          243,
+                        ),
+                      ),
+                      child: const Text(
+                        'AGGIUNGI NUOVA TASK',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ---------------------------------------------------------------------------
+              // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
+              // ---------------------------------------------------------------------------
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final larghezzaSchermo = constraints.maxWidth;
+
+                    // larghezza minima per una colonna
+                    const larghezzaMinColonne = 400.0;
+
+                    // larghezza ideale: 1/3 dello schermo
+                    final larghezzaIdeale = larghezzaSchermo / 3;
+
+                    //selezione fra minima e ideale
+                    final columnWidth = larghezzaIdeale < larghezzaMinColonne
+                        ? larghezzaMinColonne
+                        : larghezzaIdeale;
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          //----------------------------------------------------------
+                          //COLONNA 1: DA INIZIARE
+                          //----------------------------------------------------------
+                          SizedBox(
+                            width: columnWidth,
+                            child: buildColonnaKanban(
+                              titolo: 'DA INIZIARE',
+                              indici: daIniziareOrdinato,
+                              coloreTitolo: const Color.fromARGB(
+                                255,
+                                206,
+                                206,
+                                206,
+                              ),
+                            ),
+                          ),
+
+                          //----------------------------------------------------------
+                          //COLONNA 2: INIZIATO
+                          //----------------------------------------------------------
+                          SizedBox(
+                            width: columnWidth,
+                            child: buildColonnaKanban(
+                              titolo: 'INIZIATO',
+                              indici: iniziatoOrdinato,
+                              coloreTitolo: const Color.fromARGB(
+                                255,
+                                206,
+                                206,
+                                206,
+                              ),
+                            ),
+                          ),
+
+                          //----------------------------------------------------------
+                          //COLONNA 3: COMPLETATO
+                          //----------------------------------------------------------
+                          SizedBox(
+                            width: columnWidth,
+                            child: buildColonnaKanban(
+                              titolo: 'COMPLETATO',
+                              indici: completatoOrdinato,
+                              coloreTitolo: const Color.fromARGB(
+                                255,
+                                206,
+                                206,
+                                206,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 }
+
 //------------------------------------------------------------------------------
 // PAGINA SEPARATA PER MOSTRARE IL LOG CON RICERCA TESTUALE
 //------------------------------------------------------------------------------
-
 class LogPage extends StatefulWidget {
   // Ricevimento log completo
   final List<String> log;
@@ -1454,35 +1664,13 @@ class _LogPageState extends State<LogPage> {
           //--------------------------------------------------------------------
           Padding(
             padding: const EdgeInsets.all(12),
-            child: TextField(
-              //testo scritto dentro
+            child: SearchBarWidget(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                //colore 'cerca nel log'
-                labelText: 'Cerca nel log',
-                labelStyle: const TextStyle(color: Colors.white),
-
-                //colore 'scrivi una parola o una parte della frase...'
-                hintText: 'Scrivi una parola o una parte della frase...',
-                hintStyle: const TextStyle(color: Colors.white),
-
-                //colore icone
-                prefixIcon: const Icon(Icons.search, color: Colors.white),
-
-                // Pulsante X per cancellare velocemente il testo
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white),
-                        onPressed: () {
-                          // Cancella testo -> listener aggiorna automaticamente lista
-                          _searchController.clear();
-                        },
-                      ),
-
-                border: const OutlineInputBorder(),
-              ),
+              hintText: 'Scrivi una parola o una parte della frase...',
+              onChanged: (_) {
+                // aggiorno la UI per mostrare/nascondere la X
+                setState(() {});
+              },
             ),
           ),
 
@@ -1575,5 +1763,55 @@ class _LogPageState extends State<LogPage> {
     if (widget.onReset != null) {
       await widget.onReset!();
     }
+  }
+}
+
+//------------------------------------------------------------------------------
+// WIDGET RIUTILIZZABILE: barra di ricerca
+//------------------------------------------------------------------------------
+class SearchBarWidget extends StatelessWidget {
+  final TextEditingController controller;
+  final String hintText;
+  final void Function(String) onChanged;
+
+  const SearchBarWidget({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      //testo scritto dentro
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        //colore 'scrivi una parola o una parte della frase...'
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.white),
+
+        //colore icone
+        prefixIcon: const Icon(Icons.search, color: Colors.white),
+
+        // Pulsante X per cancellare velocemente il testo
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.clear, color: Colors.white),
+                onPressed: () {
+                  // Cancella testo
+                  controller.clear();
+                  onChanged('');
+                },
+              ),
+
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: const Color.fromARGB(80, 0, 0, 0),
+      ),
+    );
   }
 }
