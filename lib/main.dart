@@ -723,12 +723,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Scroll interno del foglio
                     child: SingleChildScrollView(
                       controller: controller,
-                      padding: EdgeInsets.fromLTRB(
-                        18,
-                        12,
-                        18,
-                        MediaQuery.of(ctx).viewInsets.bottom + 18,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -855,7 +851,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    value: prioritaselezionata,
+                                    initialValue: prioritaselezionata,
+                                    dropdownColor: const Color(0xFF141622),
+                                    style: const TextStyle(color: Colors.white),
+                                    iconEnabledColor: Colors.white70,
                                     items: const [
                                       DropdownMenuItem(
                                         value: 'Bassa',
@@ -888,7 +887,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    value: avanzamentoselezionato,
+                                    initialValue: avanzamentoselezionato,
+                                    dropdownColor: const Color(0xFF141622),
+                                    style: const TextStyle(color: Colors.white),
+                                    iconEnabledColor: Colors.white70,
                                     items: const [
                                       DropdownMenuItem(
                                         value: 'Da iniziare',
@@ -1278,186 +1280,346 @@ class _MyHomePageState extends State<MyHomePage> {
     final titoloController = TextEditingController();
     final descrizioneController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) {
-        // Stato locale del dialog: dropdown
-        String prioritaselezionata = 'Priorità';
-        String avanzamentoselezionato = 'Avanzamento';
 
+      // bottom sheet sale
+      isScrollControlled: true,
+
+      backgroundColor: Colors.transparent,
+
+      builder: (sheetContext) {
+        String prioritaselezionata = 'Media';
+        String avanzamentoselezionato = 'Da iniziare';
+
+        // StatefulBuilder = mini-setState locale al bottom sheet
         return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return AlertDialog(
-              title: const Text('Crea una nuova task'),
-              content: SizedBox(
-                width: MediaQuery.of(dialogContext).size.width * 0.6,
-                height: MediaQuery.of(dialogContext).size.height * 0.6,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
+          builder: (ctx, setSheetState) {
+            return DraggableScrollableSheet(
+              // Quanto è alta all'apertura
+              initialChildSize: 0.86,
 
-                    // Dropdown priorità + avanzamento
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: prioritaselezionata,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Priorità',
-                                child: Text('Priorità'),
+              // Altezza minima quando l’utente la trascina verso il basso
+              minChildSize: 0.55,
+
+              // Altezza massima quando l’utente la trascina verso l’alto
+              maxChildSize: 0.96,
+
+              builder: (_, controller) {
+                // -------------------------------------------------------------
+                // Container principale
+                //--------------------------------------------------------------
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0E0F14),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                  ),
+
+                  // SafeArea(top: false)
+                  child: SafeArea(
+                    top: false,
+
+                    child: SingleChildScrollView(
+                      controller: controller,
+
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ---------------------------------------------------------
+                          // HANDLE
+                          // ---------------------------------------------------------
+                          Center(
+                            child: Container(
+                              width: 42,
+                              height: 5,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(99),
                               ),
-                              DropdownMenuItem(
-                                value: 'Bassa',
-                                child: Text('Bassa'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Media',
-                                child: Text('Media'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Alta',
-                                child: Text('Alta'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setDialogState(() => prioritaselezionata = value);
-                            },
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: avanzamentoselezionato,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Avanzamento',
-                                child: Text('Avanzamento'),
+
+                          // ---------------------------------------------------------
+                          // HEADER MODERNO con gradiente
+                          // ---------------------------------------------------------
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
                               ),
-                              DropdownMenuItem(
-                                value: 'Da iniziare',
-                                child: Text('Da iniziare'),
+                            ),
+                            child: const Text(
+                              'Crea una nuova task',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
                               ),
-                              DropdownMenuItem(
-                                value: 'Iniziato',
-                                child: Text('Iniziato'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Completato',
-                                child: Text('Completato'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setDialogState(
-                                () => avanzamentoselezionato = value,
-                              );
-                            },
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
 
-                    // Titolo
-                    TextField(
-                      controller: titoloController,
-                      maxLength: 40,
-                      decoration: const InputDecoration(labelText: 'Titolo'),
-                    ),
-                    const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
-                    // Corpo testo
-                    Expanded(
-                      child: TextField(
-                        controller: descrizioneController,
-                        keyboardType: TextInputType.multiline,
-                        expands: true,
-                        maxLines: null,
-                        textAlign: TextAlign.left,
-                        textAlignVertical: TextAlignVertical.top,
-                        decoration: const InputDecoration(
-                          labelText: 'Corpo del testo',
-                          border: OutlineInputBorder(),
-                        ),
+                          // ---------------------------------------------------------
+                          // Sezione: impostazioni (priorità + avanzamento)
+                          // ---------------------------------------------------------
+                          _sectionTitle('Impostazioni'),
+                          const SizedBox(height: 10),
+
+                          // Riga con due dropdown affiancati
+                          Row(
+                            children: [
+                              // ------------------ DROPDOWN PRIORITÀ ------------------
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  // Valore selezionato corrente
+                                  value: prioritaselezionata,
+                                  dropdownColor: const Color(0xFF141622),
+                                  style: const TextStyle(color: Colors.white),
+                                  iconEnabledColor: Colors.white70,
+
+                                  // Opzioni disponibili
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'Bassa',
+                                      child: Text('Bassa'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Media',
+                                      child: Text('Media'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Alta',
+                                      child: Text('Alta'),
+                                    ),
+                                  ],
+
+                                  // Quando cambia, aggiorna lo stato locale del sheet
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setSheetState(
+                                      () => prioritaselezionata = value,
+                                    );
+                                  },
+
+                                  // _darkInputDecoration = stile scuro moderno
+                                  decoration: _darkInputDecoration('Priorità'),
+                                ),
+                              ),
+
+                              const SizedBox(width: 12),
+
+                              // --------------- DROPDOWN AVANZAMENTO ------------------
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: avanzamentoselezionato,
+                                  dropdownColor: const Color(0xFF141622),
+                                  style: const TextStyle(color: Colors.white),
+                                  iconEnabledColor: Colors.white70,
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'Da iniziare',
+                                      child: Text('Da iniziare'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Iniziato',
+                                      child: Text('Iniziato'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Completato',
+                                      child: Text('Completato'),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setSheetState(
+                                      () => avanzamentoselezionato = value,
+                                    );
+                                  },
+                                  decoration: _darkInputDecoration(
+                                    'Avanzamento',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // ---------------------------------------------------------
+                          // Campo Titolo
+                          // ---------------------------------------------------------
+                          _sectionTitle('Titolo'),
+                          const SizedBox(height: 10),
+
+                          TextField(
+                            controller: titoloController,
+
+                            // Max 40 caratteri
+                            maxLength: 40,
+
+                            // Testo bianco perché fondo scuro
+                            style: const TextStyle(color: Colors.white),
+
+                            // Stile input uniforme al dettaglio task
+                            decoration: _darkInputDecoration('Titolo'),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // ---------------------------------------------------------
+                          // Campo Descrizione
+                          // ---------------------------------------------------------
+                          _sectionTitle('Descrizione'),
+                          const SizedBox(height: 10),
+
+                          TextField(
+                            controller: descrizioneController,
+
+                            // Min/Max righe
+                            minLines: 8,
+                            maxLines: 20,
+
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _darkInputDecoration('Contenuto'),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ---------------------------------------------------------
+                          // Bottoni finali: Annulla / Crea
+                          // ---------------------------------------------------------
+                          Row(
+                            children: [
+                              // -------------------- ANNULLA --------------------
+                              Expanded(
+                                child: FilledButton.tonal(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.white.withOpacity(
+                                      0.08,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+
+                                  // Chiude la bottom sheet SENZA salvare
+                                  onPressed: () => Navigator.pop(ctx),
+
+                                  child: const Text('Annulla'),
+                                ),
+                              ),
+
+                              const SizedBox(width: 12),
+
+                              // ---------------------- CREA ----------------------
+                              Expanded(
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6C5CE7),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+
+                                  onPressed: () {
+                                    // ------------------------------------------------
+                                    // VALIDAZIONE
+                                    // ------------------------------------------------
+                                    if (titoloController.text.trim().isEmpty) {
+                                      _schermataerrore(
+                                        'Il titolo è obbligatorio per creare la task',
+                                      );
+                                      return;
+                                    }
+
+                                    // ------------------------------------------------
+                                    // CREAZIONE TASK
+                                    // 1) -1 credito
+                                    // 2) crea Task
+                                    // 3) aggiunge cronologia (-1)
+                                    // 4) aggiunge task alla lista
+                                    // 5) se nasce completata: +2 crediti e cronologia (+2)
+                                    // 6) scrive nel log
+                                    // ------------------------------------------------
+                                    setState(() {
+                                      // spendo 1 credito per creare
+                                      _crediti--;
+
+                                      // creazione task
+                                      final nuovaTask = Task(
+                                        titoloController.text.trim(),
+                                        descrizioneController.text,
+                                        avanzamentoselezionato,
+                                        prioritaselezionata,
+                                      );
+
+                                      // movimento crediti: creazione task = -1
+                                      _cronologia.add(
+                                        EventoCrediti(nuovaTask.titolo, -1),
+                                      );
+
+                                      // aggiunta lista principale
+                                      _task.add(nuovaTask);
+
+                                      // Se nasce già completata -> bonus +2
+                                      if (avanzamentoselezionato ==
+                                          'Completato') {
+                                        _crediti += 2;
+                                        _cronologia.add(
+                                          EventoCrediti(nuovaTask.titolo, 2),
+                                        );
+                                        _addLog(
+                                          '+2 CREDITI: TASK CREATA GIÀ COMPLETATA (ID: ${nuovaTask.id}) ("${nuovaTask.titolo}")',
+                                        );
+                                      }
+
+                                      // Log della creazione
+                                      _addLog(
+                                        'CREATA task: (ID: ${nuovaTask.id}): "TITOLO: ${nuovaTask.titolo}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
+                                      );
+                                    });
+
+                                    // ------------------------------------------------
+                                    // Persistenza: salva su file JSON
+                                    // ------------------------------------------------
+                                    _saveData();
+
+                                    // ------------------------------------------------
+                                    // Chiude la bottom sheet dopo la creazione
+                                    // ------------------------------------------------
+                                    Navigator.pop(ctx);
+                                  },
+
+                                  child: const Text('Crea'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Annulla'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Validazioni
-                    if (titoloController.text.isEmpty) {
-                      _schermataerrore(
-                        'Il titolo è obbligatorio per creare la task',
-                      );
-                      return;
-                    }
-
-                    if (avanzamentoselezionato == 'Avanzamento') {
-                      _schermataerrore(
-                        'Selezionare lo stato di avanzamento è obbligatorio per creare la task',
-                      );
-                      return;
-                    }
-
-                    if (prioritaselezionata == 'Priorità') {
-                      _schermataerrore(
-                        'Selezionare la priorità è obbligatorio per creare la task',
-                      );
-                      return;
-                    }
-
-                    setState(() {
-                      _crediti--;
-                      final nuovaTask = Task(
-                        titoloController.text,
-                        descrizioneController.text,
-                        avanzamentoselezionato,
-                        prioritaselezionata,
-                      );
-
-                      _cronologia.add(EventoCrediti(nuovaTask.titolo, -1));
-                      _task.add(nuovaTask);
-
-                      //------------------------------------------------------------------------
-                      // SE LA TASK NASCE GIÀ COMPLETATA ASSEGNARE COMUNQE I 2 CREDITI
-                      //------------------------------------------------------------------------
-                      if (avanzamentoselezionato == 'Completato') {
-                        _crediti += 2;
-                        _cronologia.add(EventoCrediti(nuovaTask.titolo, 2));
-                        _addLog(
-                          '+2 CREDITI: TASK CREATA GIÀ COMPLETATA (ID: ${nuovaTask.id}) ("${nuovaTask.titolo}")',
-                        );
-                      }
-
-                      //--------------------------------------------------------
-                      // LOG CREAZIONE TASK
-                      //--------------------------------------------------------
-
-                      _addLog(
-                        'CREATA task: (ID: ${nuovaTask.id}): "TITOLO: ${nuovaTask.titolo}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
-                      );
-                    });
-
-                    _saveData();
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Crea'),
-                ),
-              ],
+                  ),
+                );
+              },
             );
           },
         );
@@ -1481,11 +1643,16 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 4, 0, 255),
+
+        // Su schermi stretti riduco un po' lo spazio del titolo a sinistra
+        leadingWidth: MediaQuery.of(context).size.width < 520 ? 120 : 180,
+
         leading: Padding(
           padding: const EdgeInsets.only(left: 12),
           child: Center(
             child: Text(
               widget.title,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 33,
                 color: Colors.white,
@@ -1501,7 +1668,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        leadingWidth: 180,
 
         // Barra di ricerca centrale (riuso widget)
         title: Center(
@@ -1521,85 +1687,166 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // Tutti i pulsanti in actions (nessun overflow con schermi stretti)
         actions: [
-          IconButton(
-            tooltip: _invertiOrdinamento
-                ? 'Ordine priorità: Bassa -> Alta'
-                : 'Ordine priorità: Alta -> Bassa',
-            icon: Icon(
-              _invertiOrdinamento ? Icons.south : Icons.north,
-              color: Colors.white,
-              shadows: const [
-                Shadow(
-                  offset: Offset(2, 2),
-                  blurRadius: 3,
-                  color: Colors.black,
-                ),
-              ],
-            ),
-            onPressed: () {
-              setState(() {
-                _invertiOrdinamento = !_invertiOrdinamento;
-              });
-            },
-          ),
-          //----------------------------------------------------------------------
-          // PULSANTE PER VEDERE IL LOG
-          //----------------------------------------------------------------------
-          IconButton(
-            tooltip: 'Log',
-            icon: const Icon(
-              Icons.article,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  offset: Offset(2, 2),
-                  blurRadius: 3,
-                  color: Colors.black,
-                ),
-              ],
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => LogPage(
-                    log: _log,
-                    onReset: () async {
-                      await _saveData();
+          LayoutBuilder(
+            builder: (context, c) {
+              // Se la larghezza è poca, comprimo tutto in un menu (niente overflow)
+              final bool compatto = MediaQuery.of(context).size.width < 720;
+
+              if (compatto) {
+                return PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'sort') {
+                      setState(
+                        () => _invertiOrdinamento = !_invertiOrdinamento,
+                      );
+                    } else if (value == 'log') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LogPage(
+                            log: _log,
+                            onReset: () async => _saveData(),
+                          ),
+                        ),
+                      );
+                    } else if (value == 'crediti') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CronologiaSpesePage(cronologia: _cronologia),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'sort',
+                      child: Row(
+                        children: [
+                          Icon(
+                            _invertiOrdinamento ? Icons.south : Icons.north,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _invertiOrdinamento
+                                ? 'Ordine: Bassa → Alta'
+                                : 'Ordine: Alta → Bassa',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'log',
+                      child: Row(
+                        children: [
+                          Icon(Icons.article, size: 18),
+                          SizedBox(width: 10),
+                          Text('Log'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'crediti',
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet, size: 18),
+                          SizedBox(width: 10),
+                          Text('Storico crediti'),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // Se c’è spazio, mostro i 3 pulsanti “normali”
+              return Row(
+                children: [
+                  IconButton(
+                    tooltip: _invertiOrdinamento
+                        ? 'Ordine priorità: Bassa -> Alta'
+                        : 'Ordine priorità: Alta -> Bassa',
+                    icon: Icon(
+                      _invertiOrdinamento ? Icons.south : Icons.north,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          offset: Offset(2, 2),
+                          blurRadius: 3,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
+                    onPressed: () => setState(
+                      () => _invertiOrdinamento = !_invertiOrdinamento,
+                    ),
+                  ),
+                  //----------------------------------------------------------
+                  // PULSANTE PER VEDERE IL LOG
+                  // ---------------------------------------------------------
+                  IconButton(
+                    tooltip: 'Log',
+                    icon: const Icon(
+                      Icons.article,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(2, 2),
+                          blurRadius: 3,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LogPage(
+                            log: _log,
+                            onReset: () async => _saveData(),
+                          ),
+                        ),
+                      );
                     },
                   ),
-                ),
+
+                  //----------------------------------------------------------
+                  // PULSANTE STORICO CREDITI
+                  // ---------------------------------------------------------
+                  IconButton(
+                    tooltip: 'Storico Crediti',
+                    icon: const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(2, 2),
+                          blurRadius: 3,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CronologiaSpesePage(cronologia: _cronologia),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                ],
               );
             },
           ),
-          // -------------------------------------------------------------------------
-          // PULSANTE CRONOLOGIA CREDITI
-          // -------------------------------------------------------------------------
-          IconButton(
-            tooltip: 'Storico Crediti',
-            icon: const Icon(
-              Icons.account_balance_wallet,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  offset: Offset(2, 2),
-                  blurRadius: 3,
-                  color: Colors.black,
-                ),
-              ],
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CronologiaSpesePage(cronologia: _cronologia),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 6),
         ],
       ),
+
       body: Stack(
         children: [
           Positioned.fill(
