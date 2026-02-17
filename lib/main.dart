@@ -34,6 +34,9 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+bool _invertiOrdinamento =
+    false; // false = alta-> media -> bassa / true = bassa -> media -> aòta
+
 // Struttura dati di una task
 class Task {
   String titolo;
@@ -330,7 +333,7 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                     ),
                   ),
                 );
-              }),
+              }, childCount: _filteredCronologia.length),
             ),
         ],
       ),
@@ -376,7 +379,9 @@ class _MyHomePageState extends State<MyHomePage> {
       final pb = _pesoPriorita(_task[b].priorita);
 
       //confronto priorità
-      final cmpPriorita = pb.compareTo(pa);
+      final cmpPriorita = _invertiOrdinamento
+          ? pa.compareTo(pb)
+          : pb.compareTo(pa);
       if (cmpPriorita != 0) return cmpPriorita;
 
       // Se priorità uguale ordinamento per ultima modifica
@@ -1339,7 +1344,7 @@ class _MyHomePageState extends State<MyHomePage> {
             constraints: const BoxConstraints(maxWidth: 550),
             child: SearchBarWidget(
               controller: _ricercaTaskController,
-              hintText: 'Cerca task (titolo, descrizione o ID / id:123)...',
+              hintText: 'Cerca task (titolo, descrizione, data o ID / id:123)',
               onChanged: (value) {
                 setState(() {
                   _taskQuery = value;
@@ -1349,10 +1354,34 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
 
-        //----------------------------------------------------------------------
-        // PULSANTE PER VEDERE IL LOG
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------
+        // PULSANTE INVERTI ORDINAMENTO
+        //--------------------------------------------------------------------
         actions: [
+          IconButton(
+            tooltip: _invertiOrdinamento
+                ? 'Ordine priorità : Bassa -> Alta'
+                : 'Ordine priorità : Alta -> Bassa',
+            icon: Icon(
+              _invertiOrdinamento ? Icons.south : Icons.north,
+              color: Colors.white,
+              shadows: const [
+                Shadow(
+                  offset: Offset(2, 2),
+                  blurRadius: 3,
+                  color: Colors.black,
+                ),
+              ],
+            ),
+            onPressed: () {
+              setState(() {
+                _invertiOrdinamento = !_invertiOrdinamento;
+              });
+            },
+          ),
+          //----------------------------------------------------------------------
+          // PULSANTE PER VEDERE IL LOG
+          //----------------------------------------------------------------------
           IconButton(
             tooltip: 'Log',
             icon: const Icon(
