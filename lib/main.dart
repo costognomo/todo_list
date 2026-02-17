@@ -1797,11 +1797,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
               List<Widget> buttons = [];
 
-              // 🔍 Se non siamo in versione larga, mostra icona ricerca
+              // Se non siamo in versione larga, mostra icona ricerca
               if (!showInlineSearch) {
                 buttons.add(
                   IconButton(
                     icon: const Icon(Icons.search),
+                    tooltip: 'Cerca task',
                     onPressed: () {
                       showDialog(
                         context: context,
@@ -1903,12 +1904,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 buttons.addAll([
                   IconButton(
                     icon: Icon(_invertiOrdinamento ? Icons.south : Icons.north),
+                    tooltip: 'Inverti ordine priorità',
                     onPressed: () => setState(
                       () => _invertiOrdinamento = !_invertiOrdinamento,
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.article),
+                    tooltip: 'Log',
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -1923,6 +1926,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.account_balance_wallet),
+                    tooltip: 'Storico crediti',
                     onPressed: () {
                       Navigator.push(
                         context,
