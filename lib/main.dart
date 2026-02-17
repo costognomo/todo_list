@@ -8,6 +8,100 @@ void main() {
   runApp(const MyApp());
 }
 
+//------------------------------------------------------------------------------
+// STILI UI (aggiunti per rendere la HOME coerente con il bottom sheet moderno)
+//------------------------------------------------------------------------------
+class AppStyles {
+  static const pageBg = Color(0xFF0E0F14);
+
+  // Card effetto "glass" moderno
+  static BoxDecoration glassCard({double radius = 18}) => BoxDecoration(
+    color: Colors.white.withValues(alpha: 0.06),
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.35),
+        blurRadius: 18,
+        offset: const Offset(0, 10),
+      ),
+    ],
+  );
+
+  // Header gradiente coerente con dettaglio task
+  static BoxDecoration gradientHeader({double radius = 22}) => BoxDecoration(
+    borderRadius: BorderRadius.circular(radius),
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
+    ),
+  );
+
+  static Color divider() => Colors.white.withValues(alpha: 0.08);
+
+  // Search bar dark coerente con il resto
+  static InputDecoration darkSearchDecoration({
+    required String hintText,
+    required TextEditingController controller,
+    required VoidCallback onClear,
+  }) {
+    return InputDecoration(
+      //colore 'scrivi una parola o una parte della frase...'
+      hintText: hintText,
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
+
+      //colore icone
+      prefixIcon: Icon(
+        Icons.search,
+        color: Colors.white.withValues(alpha: 0.85),
+      ),
+
+      // Pulsante X per cancellare velocemente il testo
+      suffixIcon: controller.text.isEmpty
+          ? null
+          : IconButton(
+              icon: Icon(
+                Icons.clear,
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
+              onPressed: onClear,
+            ),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.06),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
+
+  static InputDecoration darkInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.70)),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.06),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -19,6 +113,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 32, 29, 180),
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),
@@ -35,7 +130,9 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+//------------------------------------------------------------------------------
 // Struttura dati di una task
+//------------------------------------------------------------------------------
 class Task {
   String titolo;
   String descrizione;
@@ -184,11 +281,11 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppStyles.pageBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: AppStyles.pageBg,
             pinned: true,
             title: const Text(
               'STORICO CREDITI',
@@ -197,9 +294,9 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
             iconTheme: const IconThemeData(color: Colors.white),
           ),
 
-          //--------------------------------------------------------------------------
+          //------------------------------------------------------------------
           // BODY: barra ricerca + lista
-          //--------------------------------------------------------------------------
+          //------------------------------------------------------------------
 
           //--------------------------------------------------------------------
           // BARRA DI RICERCA
@@ -234,11 +331,11 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                 //------------------------------------------------------------------
                 Color colore;
                 if (evento.valore == -1) {
-                  colore = Colors.red; // creazione task
+                  colore = const Color(0xFFFF4D4D); // creazione task
                 } else if (evento.valore == 1) {
-                  colore = Colors.yellow; // eliminazione
+                  colore = const Color(0xFFFFC107); // eliminazione
                 } else {
-                  colore = Colors.green; // completamento
+                  colore = const Color(0xFF4CAF50); // completamento
                 }
 
                 //------------------------------------------------------------------
@@ -252,15 +349,13 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                 // BOX GRAFICO DEL MOVIMENTO
                 //------------------------------------------------------------------
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                  decoration: AppStyles.glassCard(radius: 16),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 0, 40, 160),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+
                   //----------------------------------------------------------------------
                   // CONTENUTO BOX: sinistra (titolo+data) | destra (numero centrato)
                   //----------------------------------------------------------------------
@@ -285,6 +380,7 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
 
@@ -293,8 +389,8 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                               // Data piccola sotto il titolo
                               Text(
                                 dataFormattata,
-                                style: const TextStyle(
-                                  color: Colors.white54,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.55),
                                   fontSize: 12,
                                 ),
                               ),
@@ -356,6 +452,20 @@ class _MyHomePageState extends State<MyHomePage> {
         return 1;
       default:
         return 0;
+    }
+  }
+
+  // Colore accento per la priorità
+  Color _colorPriorita(String p) {
+    switch (p) {
+      case 'Alta':
+        return const Color(0xFFFF4D4D);
+      case 'Media':
+        return const Color(0xFFFFC107);
+      case 'Bassa':
+        return const Color(0xFF4CAF50);
+      default:
+        return Colors.white.withValues(alpha: 0.25);
     }
   }
 
@@ -563,100 +673,73 @@ class _MyHomePageState extends State<MyHomePage> {
       'HH:mm - dd/MM/yyyy',
     ).format(ultimaModifica);
 
+    // card "glass" + accento priorità laterale
     return Container(
-      constraints: const BoxConstraints(minHeight: 100),
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color.fromARGB(230, 0, 11, 168),
-        border: Border.all(color: const Color.fromARGB(117, 0, 0, 0), width: 3),
-        boxShadow: const [
-          BoxShadow(color: Color.fromARGB(151, 66, 52, 255), blurRadius: 12),
-        ],
-      ),
-
-      //------------------------------------------------------------------------
-      // CONTENUTO: titolo + descrizione
-      //------------------------------------------------------------------------
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: AppStyles.glassCard(radius: 18),
+      child: Row(
         children: [
-          // TITOLO
-          Text(
-            _task[index].titolo,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+          // Accento priorità
+          Container(
+            width: 6,
+            height: 112,
+            decoration: BoxDecoration(
+              color: _colorPriorita(_task[index].priorita),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(18),
+              ),
             ),
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
 
-          //------------------------------------------------------------------------
-          // DESCRIZIONE (con fade sotto)
-          //------------------------------------------------------------------------
-          SizedBox(
-            child: Stack(
-              children: [
-                // DESCRIZIONE
-                Text(
-                  _task[index].descrizione,
-                  softWrap: true,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 10,
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Color.fromARGB(193, 0, 11, 168),
-                          ],
-                        ),
-                      ),
+          // Contenuto
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TITOLO
+                  Text(
+                    _task[index].titolo,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(height: 6),
 
-          //------------------------------------------------------------------------
-          // ORARIO IN BASSO A DESTRA
-          //------------------------------------------------------------------------
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'ID: ${_task[index].id}  ',
-                  style: const TextStyle(fontSize: 11, color: Colors.white38),
-                ),
+                  // DESCRIZIONE
+                  Text(
+                    _task[index].descrizione.isEmpty
+                        ? '(nessuna descrizione)'
+                        : _task[index].descrizione,
+                    softWrap: true,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontStyle: FontStyle.italic,
+                      height: 1.25,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
 
-                // ultima modifica a destra
-                Text(
-                  'Ultima modifica: $formattamento',
-                  style: const TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ],
+                  // ORARIO IN BASSO
+                  const SizedBox(height: 10),
+                  Text(
+                    'ID: ${_task[index].id} · Ultima modifica: $formattamento',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.45),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -737,7 +820,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               height: 5,
                               margin: const EdgeInsets.only(bottom: 14),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(99),
                               ),
                             ),
@@ -796,10 +879,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.06),
+                                color: Colors.white.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.08),
+                                  color: Colors.white.withValues(alpha: 0.08),
                                 ),
                               ),
                               child: Column(
@@ -1158,9 +1241,9 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.16),
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: Text(
         text,
@@ -1185,21 +1268,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   static InputDecoration _darkInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.06),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.10)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.22)),
-      ),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-    );
+    return AppStyles.darkInputDecoration(label);
   }
 
   // -----------------------------------------------------------------
@@ -1216,32 +1285,51 @@ class _MyHomePageState extends State<MyHomePage> {
       margin: const EdgeInsets.all(12),
 
       // SFONDO BIANCO TRASPARENTE + BORDI ARROTONDATI
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(136, 0, 0, 0),
-        borderRadius: BorderRadius.circular(20),
-
-        // ombra leggera
-        boxShadow: const [
-          BoxShadow(color: Color.fromARGB(103, 38, 0, 255), blurRadius: 10),
-        ],
-      ),
+      decoration: AppStyles.glassCard(radius: 20),
       child: Column(
         children: [
           // -------------------------------
           // TITOLO DELLA COLONNA
           // -------------------------------
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              titolo,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: coloreTitolo,
-              ),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    titolo,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  child: Text(
+                    '${indici.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: AppStyles.divider()),
 
           // -------------------------------
           // LISTA TASK
@@ -1338,14 +1426,14 @@ class _MyHomePageState extends State<MyHomePage> {
                               height: 5,
                               margin: const EdgeInsets.only(bottom: 14),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(99),
                               ),
                             ),
                           ),
 
                           // ---------------------------------------------------------
-                          // HEADER MODERNO con gradiente
+                          // HEADER
                           // ---------------------------------------------------------
                           Container(
                             width: double.infinity,
@@ -1383,7 +1471,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   // Valore selezionato corrente
-                                  value: prioritaselezionata,
+                                  initialValue: prioritaselezionata,
                                   dropdownColor: const Color(0xFF141622),
                                   style: const TextStyle(color: Colors.white),
                                   iconEnabledColor: Colors.white70,
@@ -1412,7 +1500,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     );
                                   },
 
-                                  // _darkInputDecoration = stile scuro moderno
+                                  // _darkInputDecoration
                                   decoration: _darkInputDecoration('Priorità'),
                                 ),
                               ),
@@ -1422,7 +1510,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               // --------------- DROPDOWN AVANZAMENTO ------------------
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: avanzamentoselezionato,
+                                  initialValue: avanzamentoselezionato,
                                   dropdownColor: const Color(0xFF141622),
                                   style: const TextStyle(color: Colors.white),
                                   iconEnabledColor: Colors.white70,
@@ -1505,8 +1593,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               Expanded(
                                 child: FilledButton.tonal(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(
-                                      0.08,
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: 0.08,
                                     ),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
@@ -1642,164 +1730,185 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 4, 0, 255),
+        backgroundColor: AppStyles.pageBg,
+        elevation: 0,
+        titleSpacing: 12,
 
-        // Su schermi stretti riduco un po' lo spazio del titolo a sinistra
-        leadingWidth: MediaQuery.of(context).size.width < 520 ? 120 : 180,
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            final double width = constraints.maxWidth;
 
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Center(
-            child: Text(
+            // -----------------------------
+            // VERSIONE LARGA (search inline)
+            // -----------------------------
+            if (width > 270) {
+              return Row(
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 650),
+                      child: SearchBarWidget(
+                        controller: _ricercaTaskController,
+                        hintText:
+                            'Cerca task (titolo, descrizione, data o ID / id:123)',
+                        onChanged: (value) {
+                          setState(() {
+                            _taskQuery = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // -----------------------------
+            // VERSIONE MEDIA (solo titolo)
+            // -----------------------------
+            return Text(
               widget.title,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 33,
+                fontSize: 20,
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
-                shadows: [
-                  Shadow(
-                    offset: Offset(2, 2),
-                    blurRadius: 3,
-                    color: Colors.black,
-                  ),
-                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
 
-        // Barra di ricerca centrale (riuso widget)
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 550),
-            child: SearchBarWidget(
-              controller: _ricercaTaskController,
-              hintText: 'Cerca task (titolo, descrizione, data o ID / id:123)',
-              onChanged: (value) {
-                setState(() {
-                  _taskQuery = value;
-                });
-              },
-            ),
-          ),
-        ),
-
-        // Tutti i pulsanti in actions (nessun overflow con schermi stretti)
         actions: [
-          LayoutBuilder(
-            builder: (context, c) {
-              // Se la larghezza è poca, comprimo tutto in un menu (niente overflow)
-              final bool compatto = MediaQuery.of(context).size.width < 720;
+          Builder(
+            builder: (context) {
+              final width = MediaQuery.of(context).size.width;
 
-              if (compatto) {
-                return PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
-                  onSelected: (value) {
-                    if (value == 'sort') {
-                      setState(
-                        () => _invertiOrdinamento = !_invertiOrdinamento,
-                      );
-                    } else if (value == 'log') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LogPage(
-                            log: _log,
-                            onReset: () async => _saveData(),
+              final bool showInlineSearch = width > 330;
+              final bool compactMenu = width < 750;
+
+              List<Widget> buttons = [];
+
+              // 🔍 Se non siamo in versione larga, mostra icona ricerca
+              if (!showInlineSearch) {
+                buttons.add(
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => Dialog(
+                          backgroundColor: AppStyles.pageBg,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: SearchBarWidget(
+                              controller: _ricercaTaskController,
+                              hintText:
+                                  'Cerca task (titolo, descrizione, data o ID / id:123)',
+                              onChanged: (value) {
+                                setState(() {
+                                  _taskQuery = value;
+                                });
+                              },
+                            ),
                           ),
                         ),
                       );
-                    } else if (value == 'crediti') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CronologiaSpesePage(cronologia: _cronologia),
-                        ),
-                      );
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'sort',
-                      child: Row(
-                        children: [
-                          Icon(
-                            _invertiOrdinamento ? Icons.south : Icons.north,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _invertiOrdinamento
-                                ? 'Ordine: Bassa → Alta'
-                                : 'Ordine: Alta → Bassa',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'log',
-                      child: Row(
-                        children: [
-                          Icon(Icons.article, size: 18),
-                          SizedBox(width: 10),
-                          Text('Log'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'crediti',
-                      child: Row(
-                        children: [
-                          Icon(Icons.account_balance_wallet, size: 18),
-                          SizedBox(width: 10),
-                          Text('Storico crediti'),
-                        ],
-                      ),
-                    ),
-                  ],
+                    },
+                  ),
                 );
               }
 
-              // Se c’è spazio, mostro i 3 pulsanti “normali”
-              return Row(
-                children: [
-                  IconButton(
-                    tooltip: _invertiOrdinamento
-                        ? 'Ordine priorità: Bassa -> Alta'
-                        : 'Ordine priorità: Alta -> Bassa',
-                    icon: Icon(
-                      _invertiOrdinamento ? Icons.south : Icons.north,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          offset: Offset(2, 2),
-                          blurRadius: 3,
-                          color: Colors.black,
+              // Se molto stretto → tutto in menu
+              if (compactMenu) {
+                buttons.add(
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'sort') {
+                        setState(
+                          () => _invertiOrdinamento = !_invertiOrdinamento,
+                        );
+                      } else if (value == 'log') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LogPage(
+                              log: _log,
+                              onReset: () async => _saveData(),
+                            ),
+                          ),
+                        );
+                      } else if (value == 'crediti') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CronologiaSpesePage(cronologia: _cronologia),
+                          ),
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'sort',
+                        child: Row(
+                          children: [
+                            Icon(
+                              _invertiOrdinamento ? Icons.south : Icons.north,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _invertiOrdinamento
+                                  ? 'Ordine: Bassa → Alta'
+                                  : 'Ordine: Alta → Bassa',
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'log',
+                        child: Row(
+                          children: [
+                            Icon(Icons.article, size: 18),
+                            SizedBox(width: 10),
+                            Text('Log'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'crediti',
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet, size: 18),
+                            SizedBox(width: 10),
+                            Text('Storico crediti'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // Versione normale con icone
+                buttons.addAll([
+                  IconButton(
+                    icon: Icon(_invertiOrdinamento ? Icons.south : Icons.north),
                     onPressed: () => setState(
                       () => _invertiOrdinamento = !_invertiOrdinamento,
                     ),
                   ),
-                  //----------------------------------------------------------
-                  // PULSANTE PER VEDERE IL LOG
-                  // ---------------------------------------------------------
                   IconButton(
-                    tooltip: 'Log',
-                    icon: const Icon(
-                      Icons.article,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(2, 2),
-                          blurRadius: 3,
-                          color: Colors.black,
-                        ),
-                      ],
-                    ),
+                    icon: const Icon(Icons.article),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -1812,23 +1921,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
-
-                  //----------------------------------------------------------
-                  // PULSANTE STORICO CREDITI
-                  // ---------------------------------------------------------
                   IconButton(
-                    tooltip: 'Storico Crediti',
-                    icon: const Icon(
-                      Icons.account_balance_wallet,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(2, 2),
-                          blurRadius: 3,
-                          color: Colors.black,
-                        ),
-                      ],
-                    ),
+                    icon: const Icon(Icons.account_balance_wallet),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -1839,9 +1933,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
-                  const SizedBox(width: 6),
-                ],
-              );
+                ]);
+              }
+
+              return Row(children: buttons);
             },
           ),
         ],
@@ -1852,6 +1947,12 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned.fill(
             child: Image.asset('assets/SfondoToDoList.png', fit: BoxFit.cover),
           ),
+
+          // overlay scuro per coerenza con stile moderno del dettaglio task
+          Positioned.fill(
+            child: Container(color: AppStyles.pageBg.withValues(alpha: 0.70)),
+          ),
+
           LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -1859,79 +1960,74 @@ class _MyHomePageState extends State<MyHomePage> {
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                      // Crediti responsive (non va in overflow)
+                      // Crediti in header gradiente
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'I tuoi crediti sono: $_crediti',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 50,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(2, 2),
-                                  blurRadius: 3,
-                                  color: Colors.black,
+                        child: Container(
+                          decoration: AppStyles.gradientHeader(radius: 22),
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.account_balance_wallet,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Crediti disponibili',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              Text(
+                                '$_crediti',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+
+                      const SizedBox(height: 14),
 
                       // --------------------------------------------------
                       //  BOTTONE LARGO TUTTO LO SCHERMO
                       // --------------------------------------------------
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                blurRadius: 20,
-                                spreadRadius: 2,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: FilledButton(
+                            onPressed: _creditnumber,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF6C5CE7),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                            ],
-                          ),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 60,
-                            child: ElevatedButton(
-                              onPressed: _creditnumber,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(
-                                  255,
-                                  55,
-                                  0,
-                                  255,
-                                ),
-                                foregroundColor: const Color.fromARGB(
-                                  255,
-                                  253,
-                                  243,
-                                  243,
-                                ),
-                              ),
-                              child: const Text(
-                                'AGGIUNGI NUOVA TASK',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            child: const Text(
+                              'AGGIUNGI NUOVA TASK',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+
+                      const SizedBox(height: 16),
 
                       // ---------------------------------------------------------------------------
                       // LARGHEZZA MINIMA + SCROLL SE NECESSARIO
@@ -2091,11 +2187,11 @@ class _LogPageState extends State<LogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppStyles.pageBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: AppStyles.pageBg,
             pinned: true,
             title: const Text('Log', style: TextStyle(color: Colors.white)),
             iconTheme: const IconThemeData(color: Colors.white),
@@ -2146,10 +2242,7 @@ class _LogPageState extends State<LogPage> {
               delegate: SliverChildBuilderDelegate((context, index) {
                 return Container(
                   margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 0, 40, 160),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: AppStyles.glassCard(radius: 16),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Text(
@@ -2230,33 +2323,14 @@ class SearchBarWidget extends StatelessWidget {
       controller: controller,
       style: const TextStyle(color: Colors.white),
       onChanged: onChanged,
-      decoration: InputDecoration(
-        //colore 'scrivi una parola o una parte della frase...'
+      decoration: AppStyles.darkSearchDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white),
-
-        //colore icone
-        prefixIcon: const Icon(Icons.search, color: Colors.white),
-
-        // Pulsante X per cancellare velocemente il testo
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.clear, color: Colors.white),
-                onPressed: () {
-                  // Cancella testo
-                  controller.clear();
-                  onChanged('');
-                },
-              ),
-        border: const OutlineInputBorder(),
-        filled: true,
-        fillColor: const Color.fromARGB(80, 0, 0, 0),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
+        controller: controller,
+        onClear: () {
+          // Cancella testo
+          controller.clear();
+          onChanged('');
+        },
       ),
     );
   }
