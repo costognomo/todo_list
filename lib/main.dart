@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 32, 29, 180),
         ),
+        useMaterial3: true,
       ),
       home: const MyHomePage(title: 'To Do List'),
     );
@@ -33,9 +34,6 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
-bool _invertiOrdinamento =
-    false; // false = alta-> media -> bassa / true = bassa -> media -> aòta
 
 // Struttura dati di una task
 class Task {
@@ -80,10 +78,7 @@ class Task {
         id: rawId != null ? (rawId as num).toInt() : null,
       )
       ..ultimaModifica =
-          DateTime.tryParse(
-            json['ultimaModifica'] ?? DateTime.now().toIso8601String(),
-          ) ??
-          DateTime.now();
+          DateTime.tryParse(json['ultimaModifica'] ?? '') ?? DateTime.now();
   }
 }
 
@@ -115,7 +110,6 @@ class EventoCrediti {
 
     // Ripristinazione della data salvata
     e.data = DateTime.tryParse(json['data'] ?? '') ?? DateTime.now();
-
     return e;
   }
 }
@@ -125,7 +119,6 @@ class EventoCrediti {
 //------------------------------------------------------------------------------
 class CronologiaSpesePage extends StatefulWidget {
   final List<EventoCrediti> cronologia;
-
   const CronologiaSpesePage({super.key, required this.cronologia});
 
   @override
@@ -165,11 +158,10 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
     if (query.isNotEmpty) {
       baseList = widget.cronologia.where((evento) {
         final titolo = evento.titoloTask.toLowerCase();
-        final valore = evento.valore.toString(); // "+2" non serve: cerchi "2"
+        final valore = evento.valore.toString();
         final dataFormattata = DateFormat(
           'dd/MM/yyyy HH:mm',
         ).format(evento.data).toLowerCase();
-
         return titolo.contains(query) ||
             valore.contains(query) ||
             dataFormattata.contains(query);
@@ -265,7 +257,6 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                     horizontal: 12,
                     vertical: 10,
                   ),
-
                   decoration: BoxDecoration(
                     color: const Color.fromARGB(255, 0, 40, 160),
                     borderRadius: BorderRadius.circular(12),
@@ -315,9 +306,8 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
                         // DESTRA: valore (+2, +1, -1) centrato e alto quanto il box
                         //----------------------------------------------------------------
                         Container(
-                          width: 50, // larghezza “colonnina” del numero
-                          alignment: Alignment
-                              .center, // centra verticalmente e orizzontalmente
+                          width: 50,
+                          alignment: Alignment.center,
                           child: Text(
                             evento.valore > 0
                                 ? '+${evento.valore}'
@@ -344,9 +334,18 @@ class _CronologiaSpesePageState extends State<CronologiaSpesePage> {
 class _MyHomePageState extends State<MyHomePage> {
   int _crediti = 10;
   final List<Task> _task = [];
-  //------------------------------------------------------------------------------
-  // ASSEGNAZIONE PESO ALLE PRIORITA
-  //------------------------------------------------------------------------------
+  final List<EventoCrediti> _cronologia = [];
+  final List<String> _log = [];
+
+  bool _invertiOrdinamento = false; // ora nello State (non globale)
+
+  // Nome file dove salviamo tutto
+  static const String _fileName = 'todo_data.json';
+
+  // RICERCA
+  final TextEditingController _ricercaTaskController = TextEditingController();
+  String _taskQuery = '';
+
   int _pesoPriorita(String priorita) {
     switch (priorita) {
       case 'Alta':
@@ -356,19 +355,10 @@ class _MyHomePageState extends State<MyHomePage> {
       case 'Bassa':
         return 1;
       default:
-        // Se per qualche motivo la priorità è vuota/sbagliata finisce in fondo
         return 0;
     }
   }
 
-  //------------------------------------------------------------------------------
-  // LISTA MOVIMENTI CREDITI
-  //------------------------------------------------------------------------------
-  final List<EventoCrediti> _cronologia = [];
-
-  //------------------------------------------------------------------------------
-  // ORDINAMENTO INDICI ALTO-> MEDIO -> BASSO |per ultima modifica
-  //------------------------------------------------------------------------------
   List<int> _ordinaIndiciPerPriorita(List<int> indici) {
     // Creazione copia per non modificare la lista originale passata
     final sorted = List<int>.from(indici);
@@ -387,21 +377,11 @@ class _MyHomePageState extends State<MyHomePage> {
       // Se priorità uguale ordinamento per ultima modifica
       final da = _task[a].ultimaModifica;
       final db = _task[b].ultimaModifica;
-
       return db.compareTo(da);
     });
-
     return sorted;
   }
 
-  //----------------------------------------------------------------------------
-  // SALVATAGGIO / CARICAMENTO NELLO STATE
-  //----------------------------------------------------------------------------
-
-  // Nome del file dove salviamo tutto
-  static const String _fileName = 'todo_data.json';
-
-  // Ritorna il file fisico nella cartella dell’app
   Future<File> _getDataFile() async {
     final dir = await getApplicationDocumentsDirectory();
     return File('${dir.path}/$_fileName');
@@ -410,21 +390,19 @@ class _MyHomePageState extends State<MyHomePage> {
   // Salva task + counter + log +cronologia crediti
   Future<void> _saveData() async {
     final file = await _getDataFile();
-
     final data = {
       'counter': _crediti,
       'log': _log,
       'tasks': _task.map((t) => t.toJson()).toList(),
       'cronologia': _cronologia.map((e) => e.toJson()).toList(),
     };
-
     await file.writeAsString(jsonEncode(data));
   }
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // ricarica tutto appena l’app parte
+    _loadData();
   }
 
   @override
@@ -447,7 +425,6 @@ class _MyHomePageState extends State<MyHomePage> {
       // CARICAMENTO CRONOLOGIA CREDITI DAL FILE
       //------------------------------------------------------------------------
       final cronologiaJson = (decoded['cronologia'] as List?) ?? [];
-
       final loadedCronologia = cronologiaJson
           .map((e) => EventoCrediti.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -478,12 +455,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // ----------------------------------------------------
-  // LOG: lista eventi + helper
-  // ----------------------------------------------------
-  final List<String> _log = [];
-
-  // CREAZIONE STRINGA LOG
   void _addLog(String msg) {
     final now = DateTime.now();
 
@@ -507,16 +478,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void _schermataerrore(String messaggio) {
     //LOG ERRORE
     _addLog('ERRORE: $messaggio');
-
     showDialog(
       context: context,
-
       builder: (ctx) => AlertDialog(
         title: const Text('Errore'),
         content: Text(messaggio),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx), // chiude SOLO l'alert
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('OK'),
           ),
         ],
@@ -524,18 +493,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  //----------------------------------------------------------------------------
-  // RICERCA: controller+ testo querry
-  //----------------------------------------------------------------------------
-  final TextEditingController _ricercaTaskController = TextEditingController();
-
-  // Ricalcolo liste al cambio
-  String _taskQuery = '';
-
-  // ---------------------------------------------------------------------------
-  //  FILTRO: ritorna gli indici reali della lista _task per uno stato
-  //  + ricerca su titolo/descrizione o ID
-  // ---------------------------------------------------------------------------
   List<int> _filtrostatoavanzamento(String stato) {
     final result = <int>[];
 
@@ -595,7 +552,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  //  BOX UI riutilizzabile per una task (
+  //  BOX UI (task in colonna)
   // ---------------------------------------------------------------------------
   Widget widgetTaskBox(int index, Color coloreTask) {
     //------------------------------------------------------------------------
@@ -614,10 +571,7 @@ class _MyHomePageState extends State<MyHomePage> {
         color: const Color.fromARGB(230, 0, 11, 168),
         border: Border.all(color: const Color.fromARGB(117, 0, 0, 0), width: 3),
         boxShadow: const [
-          BoxShadow(
-            color: Color.fromARGB(151, 66, 52, 255), //colore ombra
-            blurRadius: 12, //quanto è morbida
-          ),
+          BoxShadow(color: Color.fromARGB(151, 66, 52, 255), blurRadius: 12),
         ],
       ),
 
@@ -625,7 +579,6 @@ class _MyHomePageState extends State<MyHomePage> {
       // CONTENUTO: titolo + descrizione
       //------------------------------------------------------------------------
       padding: const EdgeInsets.all(12),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -638,9 +591,8 @@ class _MyHomePageState extends State<MyHomePage> {
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
-            overflow: TextOverflow.ellipsis, // evita testi troppo lunghi
+            overflow: TextOverflow.ellipsis,
           ),
-
           const SizedBox(height: 6),
 
           //------------------------------------------------------------------------
@@ -661,7 +613,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -690,14 +641,11 @@ class _MyHomePageState extends State<MyHomePage> {
           // ORARIO IN BASSO A DESTRA
           //------------------------------------------------------------------------
           const SizedBox(height: 8),
-
           Align(
             alignment: Alignment.bottomLeft,
             child: Row(
-              mainAxisSize:
-                  MainAxisSize.min, // restringe la row al minimo necessario
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // ID in piccolo, a sinistra
                 Text(
                   'ID: ${_task[index].id}  ',
                   style: const TextStyle(fontSize: 11, color: Colors.white38),
@@ -717,13 +665,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  //  DETTAGLIO TASK: lettura -> (se non completata) modifica -> salva
-  //  Regole richieste:
-  //    - se Completato: non modificabile
-  //    - se Completato ed eliminata: NON aumenta i crediti
+  //  DETTAGLIO TASK
   // ---------------------------------------------------------------------------
   void _openTaskDetail(int index) {
-    // Controller testo
+    // controller per gestire i campi di testo
     final titoloController = TextEditingController(text: _task[index].titolo);
     final descrizioneController = TextEditingController(
       text: _task[index].descrizione,
@@ -739,293 +684,519 @@ class _MyHomePageState extends State<MyHomePage> {
     final prioritaOriginale = _task[index].priorita;
     final avanzamentoOriginale = _task[index].avanzamento;
 
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        bool isEditing = false; // stato locale: editing on/off
+    // Se la task è completata, sarà bloccata
+    final bool isCompletata = (_task[index].avanzamento == 'Completato');
 
-        // Regola: se la task è completata, è 'bloccata'
-        final bool isCompletata = (_task[index].avanzamento == 'Completato');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        bool isEditing = false;
 
         return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return AlertDialog(
-              title: const Text('Dettaglio task'),
-              content: SizedBox(
-                width: MediaQuery.of(dialogContext).size.width * 0.6,
-                height: MediaQuery.of(dialogContext).size.height * 0.6,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 12),
+          builder: (ctx, setSheetState) {
+            final task = _task[index];
+            // Formattazione ultima modifica
+            final lastEdit = DateFormat(
+              'HH:mm - dd/MM/yyyy',
+            ).format(task.ultimaModifica);
 
-                      // Dropdown priorità + avanzamento
-                      Row(
+            return DraggableScrollableSheet(
+              // Altezza iniziale del foglio (86% schermo)
+              initialChildSize: 0.86,
+              minChildSize: 0.55,
+              maxChildSize: 0.96,
+              builder: (_, controller) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0E0F14),
+
+                    // Bordi arrotondati solo sopra
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+
+                    // Scroll interno del foglio
+                    child: SingleChildScrollView(
+                      controller: controller,
+                      padding: EdgeInsets.fromLTRB(
+                        18,
+                        12,
+                        18,
+                        MediaQuery.of(ctx).viewInsets.bottom + 18,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              initialValue: prioritaselezionata,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'Bassa',
-                                  child: Text('Bassa'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Media',
-                                  child: Text('Media'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Alta',
-                                  child: Text('Alta'),
-                                ),
-                              ],
-                              // Abilita cambio SOLO se editing e NON completata
-                              onChanged: (isEditing && !isCompletata)
-                                  ? (value) {
-                                      if (value == null) return;
-                                      setDialogState(
-                                        () => prioritaselezionata = value,
-                                      );
-                                    }
-                                  : null,
-                              decoration: const InputDecoration(
-                                labelText: 'Priorità',
-                                border: OutlineInputBorder(),
+                          // ---------------------------------------------------
+                          // BARRA SUPERIORE (handle)
+                          // ---------------------------------------------------
+                          Center(
+                            child: Container(
+                              width: 42,
+                              height: 5,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(99),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              initialValue: avanzamentoselezionato,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'Da iniziare',
-                                  child: Text('Da iniziare'),
+
+                          // -----------------------------
+                          // HEADER CON GRADIENTE
+                          // -----------------------------
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Titolo grande
+                                Text(
+                                  task.titolo,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
-                                DropdownMenuItem(
-                                  value: 'Iniziato',
-                                  child: Text('Iniziato'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Completato',
-                                  child: Text('Completato'),
+
+                                const SizedBox(height: 10),
+
+                                // Chip con priorità, stato e ID
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _chip(task.priorita),
+                                    _chip(task.avanzamento),
+                                    _chip('ID: ${task.id}'),
+                                  ],
                                 ),
                               ],
-                              onChanged: (isEditing && !isCompletata)
-                                  ? (value) {
-                                      if (value == null) return;
-                                      setDialogState(
-                                        () => avanzamentoselezionato = value,
-                                      );
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // ---------------------------------------------------
+                          // MODALITÀ VISUALIZZAZIONE (NON MODIFICA)
+                          // ---------------------------------------------------
+                          if (!isEditing) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.08),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Descrizione',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    task.descrizione.isEmpty
+                                        ? '(nessun contenuto)'
+                                        : task.descrizione,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      height: 1.35,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // Data ultima modifica
+                                  Text(
+                                    'Ultima modifica: $lastEdit',
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          // -----------------------------------------------------
+                          // MODALITÀ MODIFICA
+                          // -----------------------------------------------------
+                          if (isEditing) ...[
+                            const SizedBox(height: 6),
+                            _sectionTitle('Modifica'),
+                            const SizedBox(height: 10),
+
+                            // Dropdown priorità e avanzamento
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: prioritaselezionata,
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'Bassa',
+                                        child: Text('Bassa'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Media',
+                                        child: Text('Media'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Alta',
+                                        child: Text('Alta'),
+                                      ),
+                                    ],
+
+                                    // Se completata -> disabilitato
+                                    onChanged: isCompletata
+                                        ? null
+                                        : (value) {
+                                            if (value == null) return;
+                                            setSheetState(() {
+                                              prioritaselezionata = value;
+                                            });
+                                          },
+                                    decoration: _darkInputDecoration(
+                                      'Priorità',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: avanzamentoselezionato,
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'Da iniziare',
+                                        child: Text('Da iniziare'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Iniziato',
+                                        child: Text('Iniziato'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Completato',
+                                        child: Text('Completato'),
+                                      ),
+                                    ],
+                                    onChanged: isCompletata
+                                        ? null
+                                        : (value) {
+                                            if (value == null) return;
+                                            setSheetState(() {
+                                              avanzamentoselezionato = value;
+                                            });
+                                          },
+                                    decoration: _darkInputDecoration(
+                                      'Avanzamento',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Campo titolo
+                            TextField(
+                              controller: titoloController,
+                              enabled: !isCompletata,
+                              maxLength: 40,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: _darkInputDecoration('Titolo'),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Campo descrizione
+                            TextField(
+                              controller: descrizioneController,
+                              enabled: !isCompletata,
+                              minLines: 8,
+                              maxLines: 20,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: _darkInputDecoration('Contenuto'),
+                            ),
+                          ],
+
+                          const SizedBox(height: 16),
+
+                          // -----------------------------------------------------
+                          // BOTTONI AZIONE
+                          // -----------------------------------------------------
+                          Row(
+                            children: [
+                              // elimina
+                              Expanded(
+                                child: FilledButton.tonal(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.red.shade900,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    // elimina task
+                                    setState(() {
+                                      final taskEliminata = _task[index];
+                                      final bool eraCompletata =
+                                          (taskEliminata.avanzamento ==
+                                          'Completato');
+
+                                      _task.removeAt(index);
+
+                                      if (!eraCompletata) {
+                                        _addLog(
+                                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}" ',
+                                        );
+                                      } else {
+                                        _addLog(
+                                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}", ERA COMPLETATA',
+                                        );
+                                      }
+
+                                      if (!eraCompletata) {
+                                        _crediti++;
+                                        _cronologia.add(
+                                          EventoCrediti(
+                                            taskEliminata.titolo,
+                                            1,
+                                          ),
+                                        );
+                                      }
+                                    });
+                                    _saveData();
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: const Text('Elimina'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // chiudi/annulla + modifica/salva
+                              Expanded(
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6C5CE7),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    if (!isEditing) {
+                                      // Se non siamo in editing -> attiva editing
+                                      if (isCompletata) {
+                                        _schermataerrore(
+                                          'La task è completata e non può più essere modificata.',
+                                        );
+                                        return;
+                                      }
+                                      setSheetState(() {
+                                        isEditing = true;
+                                      });
+                                      return;
                                     }
-                                  : null,
-                              decoration: const InputDecoration(
-                                labelText: 'Avanzamento',
-                                border: OutlineInputBorder(),
+
+                                    // SALVA
+                                    if (titoloController.text.trim().isEmpty) {
+                                      _schermataerrore(
+                                        'Il titolo non può essere vuoto.',
+                                      );
+                                      return;
+                                    }
+
+                                    setState(() {
+                                      final String statoPrima =
+                                          _task[index].avanzamento;
+                                      final String statoDopo =
+                                          avanzamentoselezionato;
+
+                                      if (statoPrima != 'Completato' &&
+                                          statoDopo == 'Completato') {
+                                        _crediti += 2;
+                                        _cronologia.add(
+                                          EventoCrediti(
+                                            titoloController.text,
+                                            2,
+                                          ),
+                                        );
+                                        _addLog(
+                                          '+2 CREDITI TASK COMPLETATA (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id}) ',
+                                        );
+                                      }
+
+                                      if (statoPrima != statoDopo) {
+                                        _addLog(
+                                          'CAMBIO STATO TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id})  : "$statoPrima" -> "$statoDopo"',
+                                        );
+                                      }
+
+                                      final descrizioneDopo =
+                                          descrizioneController.text;
+                                      if (descrizioneOriginale !=
+                                          descrizioneDopo) {
+                                        _addLog(
+                                          'MODIFICATA DESCRIZIONE TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ) : "$descrizioneOriginale" -> "$descrizioneDopo"',
+                                        );
+                                      }
+
+                                      final titoloDopo = titoloController.text;
+                                      if (titoloOriginale != titoloDopo) {
+                                        _addLog(
+                                          'MODIFICATO TITOLO TASK (ID: ${_task[index].id}) : "$titoloOriginale" -> "$titoloDopo"',
+                                        );
+                                      }
+
+                                      final prioritaDopo = prioritaselezionata;
+                                      if (prioritaOriginale != prioritaDopo) {
+                                        _addLog(
+                                          'MODIFICATA PRIORITÀ  TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ): "$prioritaOriginale" -> "$prioritaDopo"',
+                                        );
+                                      }
+
+                                      // Se siamo in editing -> salva modifiche
+                                      _task[index].titolo =
+                                          titoloController.text;
+                                      _task[index].descrizione =
+                                          descrizioneController.text;
+                                      _task[index].priorita =
+                                          prioritaselezionata;
+                                      _task[index].avanzamento =
+                                          avanzamentoselezionato;
+                                      _task[index].ultimaModifica =
+                                          DateTime.now();
+                                    });
+
+                                    _saveData();
+
+                                    // torna in view (senza chiudere)
+                                    setSheetState(() {
+                                      isEditing = false;
+                                    });
+                                  },
+                                  child: Text(isEditing ? 'Salva' : 'Modifica'),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Pulsante secondario: chiudi / annulla modifiche
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                if (isEditing) {
+                                  titoloController.text = titoloOriginale;
+                                  descrizioneController.text =
+                                      descrizioneOriginale;
+                                  setSheetState(() {
+                                    prioritaselezionata = prioritaOriginale;
+                                    avanzamentoselezionato =
+                                        avanzamentoOriginale;
+                                    isEditing = false;
+                                  });
+                                } else {
+                                  Navigator.pop(ctx);
+                                }
+                              },
+                              child: Text(
+                                isEditing ? 'Annulla modifiche' : 'Chiudi',
+                                style: const TextStyle(color: Colors.white70),
                               ),
                             ),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 12),
-
-                      // Titolo (bloccato se completata)
-                      TextField(
-                        controller: titoloController,
-                        enabled: isEditing && !isCompletata,
-                        maxLength: 40,
-                        decoration: const InputDecoration(labelText: 'Titolo'),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Descrizione (bloccato se completata)
-                      TextField(
-                        controller: descrizioneController,
-                        enabled: isEditing && !isCompletata,
-                        minLines: 20,
-                        maxLines: 50,
-                        keyboardType: TextInputType.multiline,
-                        textAlignVertical: TextAlignVertical.top,
-                        decoration: const InputDecoration(
-                          labelText: 'Contenuto',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                // ------------------ ELIMINA ------------------
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      final taskEliminata = _task[index];
-                      // Se era completata -> NON incrementare crediti
-                      final bool eraCompletata =
-                          (taskEliminata.avanzamento == 'Completato');
-
-                      _task.removeAt(index);
-
-                      if (!eraCompletata) {
-                        _addLog(
-                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}" ',
-                        );
-                      } else {
-                        _addLog(
-                          'ELIMINATA TASK (ID:${taskEliminata.id}): "${taskEliminata.titolo}", ERA COMPLETATA',
-                        );
-                      }
-
-                      if (!eraCompletata) {
-                        _crediti++;
-                        // crediti tornano solo se non completata
-
-                        _cronologia.add(EventoCrediti(taskEliminata.titolo, 1));
-                      }
-                    });
-                    _saveData();
-
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Elimina'),
-                ),
-
-                // ------------------ BOTTONI DESTRA ------------------
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Chiudi oppure annulla modifiche
-                    TextButton(
-                      onPressed: () {
-                        if (isEditing) {
-                          // Ripristina testi e dropdown ai valori originali
-                          titoloController.text = titoloOriginale;
-                          descrizioneController.text = descrizioneOriginale;
-
-                          setDialogState(() {
-                            prioritaselezionata = prioritaOriginale;
-                            avanzamentoselezionato = avanzamentoOriginale;
-                            isEditing = false;
-                          });
-                        } else {
-                          Navigator.pop(dialogContext);
-                        }
-                      },
-                      child: Text(isEditing ? 'Annulla modifiche' : 'Chiudi'),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Modifica / Salva
-                    TextButton(
-                      onPressed: () {
-                        // Regola: completata -> non modificabile
-                        if (isCompletata) {
-                          _schermataerrore(
-                            'La task è completata e non può più essere modificata.',
-                          );
-                          return;
-                        }
-
-                        // Se in lettura -> entra in modifica
-                        if (!isEditing) {
-                          setDialogState(() => isEditing = true);
-                          return;
-                        }
-
-                        // Se in modifica -> salva
-                        if (titoloController.text.isEmpty) return;
-
-                        setState(() {
-                          //--------------------------------------------------------------------------------------------------
-                          // CONTROLLO CAMBIO STATO -> +2 | LOG INCREMENTO DI CREDITI PER COMPLETAMENTO TASK
-                          //--------------------------------------------------------------------------------------------------
-                          final String statoPrima = _task[index].avanzamento;
-                          final String statoDopo = avanzamentoselezionato;
-
-                          //Se NON era completata e ORA lo diventa -> +2
-                          if (statoPrima != 'Completato' &&
-                              statoDopo == 'Completato') {
-                            _crediti += 2;
-
-                            _cronologia.add(
-                              EventoCrediti(titoloController.text, 2),
-                            );
-
-                            _addLog(
-                              '+2 CREDITI TASK COMPLETATA (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id}) ',
-                            );
-                          }
-
-                          //------------------------------------------------------------------------------------------------
-                          // LOG CAMBIO DI STATO
-                          //------------------------------------------------------------------------------------------------
-                          if (statoPrima != statoDopo) {
-                            _addLog(
-                              'CAMBIO STATO TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id})  : "$statoPrima" -> "$statoDopo"',
-                            );
-                          }
-                          //------------------------------------------------------------------------------------------------
-                          // LOG MODIFICA DESCRIZIONE
-                          //------------------------------------------------------------------------------------------------
-                          final descrizioneDopo = descrizioneController.text;
-
-                          if (descrizioneOriginale != descrizioneDopo) {
-                            _addLog(
-                              'MODIFICATA DESCRIZIONE TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ) : "$descrizioneOriginale" -> "$descrizioneDopo"',
-                            );
-                          }
-
-                          //-------------------------------------------------------------------------------------------------
-                          // LOG MODIFICA TITOLO
-                          //-------------------------------------------------------------------------------------------------
-                          final titoloDopo = titoloController.text;
-                          if (titoloOriginale != titoloDopo) {
-                            _addLog(
-                              'MODIFICATO TITOLO TASK (ID: ${_task[index].id}) : "$titoloOriginale" -> "$titoloDopo"',
-                            );
-                          }
-
-                          //---------------------------------------------------------------------------------------------------
-                          // LOG MODIFICA PRIORITÀ
-                          //---------------------------------------------------------------------------------------------------
-                          final prioritaDopo = prioritaselezionata;
-                          if (prioritaOriginale != prioritaDopo) {
-                            _addLog(
-                              'MODIFICATA PRIORITÀ  TASK (TITOLO: "${_task[index].titolo}" - ID: ${_task[index].id} ): "$prioritaOriginale" -> "$prioritaDopo"',
-                            );
-                          }
-
-                          //----------------------------------------------------
-                          // AGGIORNA LA TASK
-                          //----------------------------------------------------
-
-                          _task[index].titolo = titoloController.text;
-                          _task[index].descrizione = descrizioneController.text;
-                          _task[index].priorita = prioritaselezionata;
-                          _task[index].avanzamento = avanzamentoselezionato;
-
-                          _task[index].ultimaModifica =
-                              DateTime.now(); // aggiornamento all'ultima modifica
-                        });
-                        _saveData();
-
-                        Navigator.pop(dialogContext);
-                      },
-                      child: Text(isEditing ? 'Salva' : 'Modifica'),
-                    ),
-                  ],
-                ),
-              ],
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+
+  // UI helper
+  static Widget _chip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  static Widget _sectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        fontSize: 16,
+      ),
+    );
+  }
+
+  static InputDecoration _darkInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.white.withOpacity(0.06),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.10)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.22)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 
@@ -1044,7 +1215,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // SFONDO BIANCO TRASPARENTE + BORDI ARROTONDATI
       decoration: BoxDecoration(
-        color: const Color.fromARGB(136, 0, 0, 0), // trasparenza
+        color: const Color.fromARGB(136, 0, 0, 0),
         borderRadius: BorderRadius.circular(20),
 
         // ombra leggera
@@ -1052,7 +1223,6 @@ class _MyHomePageState extends State<MyHomePage> {
           BoxShadow(color: Color.fromARGB(103, 38, 0, 255), blurRadius: 10),
         ],
       ),
-
       child: Column(
         children: [
           // -------------------------------
@@ -1069,7 +1239,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-
           const Divider(height: 1),
 
           // -------------------------------
@@ -1081,7 +1250,6 @@ class _MyHomePageState extends State<MyHomePage> {
               itemCount: indici.length,
               itemBuilder: (context, i) {
                 final indexReale = indici[i];
-
                 return InkWell(
                   onTap: () => _openTaskDetail(indexReale),
                   child: widgetTaskBox(indexReale, coloreTitolo),
@@ -1098,14 +1266,12 @@ class _MyHomePageState extends State<MyHomePage> {
   //  CREAZIONE TASK
   //  - Se non selezioni titolo/priorità/avanzamento -> alert
   // ---------------------------------------------------------------------------
-
   void _creditnumber() {
     if (_crediti < 1) {
       _schermataerrore(
-        'i tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
+        'I tuoi crediti sono finiti, porta a termine le tue task per guadagnarne altri',
       );
       _addLog('ERRORE:_CREDITI_FINITI');
-
       return;
     }
 
@@ -1135,7 +1301,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: prioritaselezionata,
+                            value: prioritaselezionata,
                             items: const [
                               DropdownMenuItem(
                                 value: 'Priorità',
@@ -1166,7 +1332,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: avanzamentoselezionato,
+                            value: avanzamentoselezionato,
                             items: const [
                               DropdownMenuItem(
                                 value: 'Avanzamento',
@@ -1253,7 +1419,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                       return;
                     }
-                    // Crea la task
+
                     setState(() {
                       _crediti--;
                       final nuovaTask = Task(
@@ -1262,8 +1428,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         avanzamentoselezionato,
                         prioritaselezionata,
                       );
-                      _cronologia.add(EventoCrediti(nuovaTask.titolo, -1));
 
+                      _cronologia.add(EventoCrediti(nuovaTask.titolo, -1));
                       _task.add(nuovaTask);
 
                       //------------------------------------------------------------------------
@@ -1272,7 +1438,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       if (avanzamentoselezionato == 'Completato') {
                         _crediti += 2;
                         _cronologia.add(EventoCrediti(nuovaTask.titolo, 2));
-
                         _addLog(
                           '+2 CREDITI: TASK CREATA GIÀ COMPLETATA (ID: ${nuovaTask.id}) ("${nuovaTask.titolo}")',
                         );
@@ -1286,8 +1451,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         'CREATA task: (ID: ${nuovaTask.id}): "TITOLO: ${nuovaTask.titolo}" | priorità=$prioritaselezionata | avanzamento=$avanzamentoselezionato | crediti=$_crediti',
                       );
                     });
-                    _saveData();
 
+                    _saveData();
                     Navigator.pop(dialogContext);
                   },
                   child: const Text('Crea'),
@@ -1301,7 +1466,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  //  UI PRINCIPALE: 3 colonne in base ad avanzamento
+  //  UI PRINCIPALE
   // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
@@ -1354,14 +1519,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
 
-        //--------------------------------------------------------------------
-        // PULSANTE INVERTI ORDINAMENTO
-        //--------------------------------------------------------------------
+        // Tutti i pulsanti in actions (nessun overflow con schermi stretti)
         actions: [
           IconButton(
             tooltip: _invertiOrdinamento
-                ? 'Ordine priorità : Bassa -> Alta'
-                : 'Ordine priorità : Alta -> Bassa',
+                ? 'Ordine priorità: Bassa -> Alta'
+                : 'Ordine priorità: Alta -> Bassa',
             icon: Icon(
               _invertiOrdinamento ? Icons.south : Icons.north,
               color: Colors.white,
@@ -1434,6 +1597,7 @@ class _MyHomePageState extends State<MyHomePage> {
               );
             },
           ),
+          const SizedBox(width: 6),
         ],
       ),
       body: Stack(
@@ -1441,7 +1605,6 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned.fill(
             child: Image.asset('assets/SfondoToDoList.png', fit: BoxFit.cover),
           ),
-
           LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -1473,7 +1636,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
                       // --------------------------------------------------
@@ -1522,7 +1684,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
                       // ---------------------------------------------------------------------------
@@ -1604,7 +1765,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                       ),
-
                       const SizedBox(height: 12),
                     ],
                   ),
@@ -1662,7 +1822,6 @@ class _LogPageState extends State<LogPage> {
     // Se c'è una ricerca, filtriamo
     if (query.isNotEmpty) {
       final qLower = query.toLowerCase();
-
       baseList = widget.log.where((riga) {
         return riga.toLowerCase().contains(qLower);
       }).toList();
@@ -1763,7 +1922,6 @@ class _LogPageState extends State<LogPage> {
   // RESET LOG: chiede conferma e poi svuota il log
   //------------------------------------------------------------------------------
   Future<void> _resetLog() async {
-    // 1) Chiediamo conferma PRIMA di fare qualsiasi modifica ai dati
     final bool? conferma = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -1844,7 +2002,6 @@ class SearchBarWidget extends StatelessWidget {
                   onChanged('');
                 },
               ),
-
         border: const OutlineInputBorder(),
         filled: true,
         fillColor: const Color.fromARGB(80, 0, 0, 0),
